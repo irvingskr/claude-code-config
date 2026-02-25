@@ -53,11 +53,22 @@ $HOME/anaconda3/envs/<env_name>/bin/python script.py
 
 ## Self-Improvement Loop
 
-- After ANY correction from the user, **immediately** write the lesson to `memory/lessons.md`
-- Record format: date, context, mistake, rule (specific rule to prevent recurrence)
-- At the start of each session, review entries in `lessons.md` relevant to the current project
-- Continuously iterate on these rules until the same class of mistakes no longer occurs
-- If a rule proves universal (recurring across multiple sessions), promote it to `CLAUDE.md`
+### What counts as a "correction" (low threshold)
+- User directly points out an error
+- User says "remember", "don't do ... again", "last time you ..."
+- User's tone conveys frustration or repeats the same request
+- Same operation fails 2+ times (e.g., connection, push, build)
+- **When in doubt whether it's a correction, treat it as one**
+
+### Mandatory post-correction flow
+1. **First action**: write to global `memory/lessons.md` (date, context, mistake, rule) — before doing anything else
+2. The "rule" must be a concrete instruction to prevent recurrence, not vague reflection
+3. Only after writing lessons.md, continue handling the user's request
+
+### Memory hierarchy
+- `memory/lessons.md`: first landing point for all lessons, write anytime (global only, never project-level)
+- `memory/MEMORY.md`: at each new session start, summarize recurring items from lessons.md into this file
+- `CLAUDE.md`: only modify when the user **explicitly asks** — never self-promote rules
 
 ## Workflow Guidelines
 
