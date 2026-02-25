@@ -29,6 +29,7 @@ Options:
     --skills            Install custom skills only
     --memory            Set up memory directory only
     --mcp               Install recommended MCP servers only
+    --plugins           Install recommended plugins from marketplaces
     --claude-md         Install CLAUDE.md only
     --settings          Install settings.json only
     --dry-run           Show what would be installed without doing it
@@ -38,6 +39,8 @@ Examples:
     ./install.sh                        # Install everything
     ./install.sh --rules python golang  # Install common + Python + Go rules
     ./install.sh --mcp                  # Install MCP servers only
+    ./install.sh --plugins              # Install plugins only
+    ./install.sh --mcp --plugins        # Install MCP + plugins
     ./install.sh --dry-run              # Preview changes
 EOF
 }
@@ -48,6 +51,7 @@ INSTALL_RULES=false
 INSTALL_SKILLS=false
 INSTALL_MEMORY=false
 INSTALL_MCP=false
+INSTALL_PLUGINS=false
 INSTALL_CLAUDE_MD=false
 INSTALL_SETTINGS=false
 RULE_LANGS=()
@@ -83,6 +87,10 @@ parse_args() {
                 ;;
             --mcp)
                 INSTALL_MCP=true
+                shift
+                ;;
+            --plugins)
+                INSTALL_PLUGINS=true
                 shift
                 ;;
             --claude-md)
@@ -197,7 +205,7 @@ install_rules() {
 }
 
 install_skills() {
-    info "Installing skills..."
+    info "Installing custom skills..."
     mkdir -p "$CLAUDE_DIR/skills"
 
     for skill_dir in "$SCRIPT_DIR"/skills/*/; do
@@ -241,28 +249,98 @@ install_mcp() {
         return 1
     fi
 
-    local servers=(
-        "context7:stdio:npx -y @upstash/context7-mcp@latest"
-        "github:http:https://api.githubcopilot.com/mcp/"
-        "playwright:stdio:npx -y @playwright/mcp@latest"
+    # Context7
+    if $DRY_RUN; then
+        info "Would add MCP server: context7 (stdio)"
+    else
+        claude mcp add --scope user --transport stdio context7 \
+            -- npx -y @upstash/context7-mcp@latest 2>/dev/null && \
+            ok "MCP server added: context7" || \
+            warn "MCP server context7 may already exist"
+    fi
+
+    # GitHub
+    if $DRY_RUN; then
+        info "Would add MCP server: github (http)"
+    else
+        claude mcp add --scope user --transport http github \
+            https://api.githubcopilot.com/mcp/ 2>/dev/null && \
+            ok "MCP server added: github" || \
+            warn "MCP server github may already exist"
+    fi
+
+    # Playwright
+    if $DRY_RUN; then
+        info "Would add MCP server: playwright (stdio)"
+    else
+        claude mcp add --scope user --transport stdio playwright \
+            -- npx -y @playwright/mcp@latest 2>/dev/null && \
+            ok "MCP server added: playwright" || \
+            warn "MCP server playwright may already exist"
+    fi
+}
+
+install_plugins() {
+    info "Installing plugins from marketplaces..."
+
+    if ! command -v claude &>/dev/null; then
+        error "Claude Code CLI not found. Install it first: https://claude.com/claude-code"
+        return 1
+    fi
+
+    # Marketplaces: name -> GitHub repo
+    declare -A MARKETPLACES=(
+        ["anthropic-agent-skills"]="anthropics/skills"
+        ["superpowers-marketplace"]="obra/superpowers-marketplace"
+        ["everything-claude-code"]="affaan-m/everything-claude-code"
+        ["ai-research-skills"]="zechenzhangAGI/AI-research-SKILLs"
+        ["claude-plugins-official"]="anthropics/claude-plugins-official"
     )
 
-    for entry in "${servers[@]}"; do
-        IFS=':' read -r name transport cmd <<< "$entry"
+    # Plugins: "plugin_name@marketplace_name"
+    PLUGINS=(
+        "document-skills@anthropic-agent-skills"
+        "example-skills@anthropic-agent-skills"
+        "superpowers@superpowers-marketplace"
+        "everything-claude-code@everything-claude-code"
+        "fine-tuning@ai-research-skills"
+        "post-training@ai-research-skills"
+        "inference-serving@ai-research-skills"
+        "distributed-training@ai-research-skills"
+        "optimization@ai-research-skills"
+    )
+
+    # Step 1: Add marketplaces
+    info "Adding marketplaces..."
+    for marketplace in "${!MARKETPLACES[@]}"; do
+        local repo="${MARKETPLACES[$marketplace]}"
         if $DRY_RUN; then
-            info "Would add MCP server: $name ($transport)"
+            info "Would add marketplace: $marketplace (github.com/$repo)"
         else
-            if [[ "$transport" == "http" ]]; then
-                claude mcp add --scope user --transport http "$name" "$cmd" 2>/dev/null && \
-                    ok "MCP server added: $name" || \
-                    warn "MCP server $name may already exist"
-            else
-                claude mcp add --scope user --transport stdio "$name" -- $cmd 2>/dev/null && \
-                    ok "MCP server added: $name" || \
-                    warn "MCP server $name may already exist"
-            fi
+            claude plugin marketplace add "https://github.com/$repo" 2>/dev/null && \
+                ok "Marketplace added: $marketplace" || \
+                warn "Marketplace $marketplace may already exist"
         fi
     done
+
+    # Step 2: Install plugins
+    info "Installing plugins..."
+    for entry in "${PLUGINS[@]}"; do
+        local plugin_name="${entry%%@*}"
+        local marketplace="${entry##*@}"
+        if $DRY_RUN; then
+            info "Would install plugin: $plugin_name from $marketplace"
+        else
+            claude plugin install "$plugin_name" --marketplace "$marketplace" 2>/dev/null && \
+                ok "Plugin installed: $plugin_name" || \
+                warn "Plugin $plugin_name may already be installed"
+        fi
+    done
+
+    # Step 3: Remind about settings.json
+    echo ""
+    info "Plugins installed. Make sure they are enabled in settings.json:"
+    info "  See plugins/README.md for the enabledPlugins configuration"
 }
 
 main() {
@@ -288,6 +366,7 @@ main() {
         install_skills
         install_memory
         install_mcp
+        install_plugins
     else
         $INSTALL_CLAUDE_MD && install_claude_md
         $INSTALL_SETTINGS && install_settings
@@ -295,6 +374,7 @@ main() {
         $INSTALL_SKILLS && install_skills
         $INSTALL_MEMORY && install_memory
         $INSTALL_MCP && install_mcp
+        $INSTALL_PLUGINS && install_plugins
     fi
 
     echo ""
@@ -304,6 +384,7 @@ main() {
     echo "  1. Restart Claude Code for changes to take effect"
     echo "  2. Run /mcp in Claude Code to authenticate GitHub MCP"
     echo "  3. Customize CLAUDE.md for your specific projects"
+    echo "  4. Review settings.json and merge with your existing config"
     echo ""
 }
 
