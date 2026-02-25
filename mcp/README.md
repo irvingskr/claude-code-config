@@ -9,6 +9,8 @@ Recommended MCP (Model Context Protocol) servers for Claude Code.
 | **Context7** | stdio | Injects up-to-date, version-specific library documentation into context |
 | **GitHub** | http | Manage PRs, issues, code reviews, and CI/CD directly from Claude Code |
 | **Playwright** | stdio | Browser automation, E2E testing, screenshots, form filling |
+| **Feishu-MCP** | stdio | Access, edit, and process Feishu documents (search, create, update blocks) |
+| **Lark-MCP** | stdio | Official Feishu/Lark OpenAPI MCP — call Lark platform APIs from AI assistants |
 
 ## Installation
 
@@ -29,6 +31,12 @@ claude mcp add --scope user --transport http github https://api.githubcopilot.co
 
 # Playwright — Browser automation & E2E testing
 claude mcp add --scope user --transport stdio playwright -- npx -y @playwright/mcp@latest
+
+# Feishu-MCP — Feishu document access & editing (replace YOUR_APP_ID / YOUR_APP_SECRET)
+claude mcp add --scope user --transport stdio feishu-mcp -- npx -y feishu-mcp@latest --feishu-app-id=YOUR_APP_ID --feishu-app-secret=YOUR_APP_SECRET --feishu-auth-type=user
+
+# Lark-MCP — Official Feishu/Lark OpenAPI (replace YOUR_APP_ID / YOUR_APP_SECRET)
+claude mcp add --scope user --transport stdio lark-mcp -- npx -y @larksuiteoapi/lark-mcp mcp -a YOUR_APP_ID -s YOUR_APP_SECRET
 ```
 
 ### From JSON config
@@ -48,7 +56,8 @@ for name, config in servers.items():
 
 1. **Restart Claude Code** for MCP servers to take effect
 2. **GitHub OAuth**: Run `/mcp` inside Claude Code, select GitHub, and authenticate in browser
-3. **Verify**: Run `/mcp` to check all servers are connected
+3. **Feishu/Lark**: Replace `YOUR_APP_ID` and `YOUR_APP_SECRET` with your actual Feishu app credentials (create at [open.feishu.cn](https://open.feishu.cn/))
+4. **Verify**: Run `/mcp` to check all servers are connected
 
 ## Adding More Servers
 
