@@ -70,7 +70,8 @@ $HOME/anaconda3/envs/<env_name>/bin/python script.py
 ## Paper Reading Standards
 
 When asked to read/summarize research papers:
-1. Prefer HTML version from `ar5iv.labs.arxiv.org` (replace `arxiv.org/abs/` with `ar5iv.labs.arxiv.org/html/`)
-2. Provide structured summary: problem definition, method, key contributions, architecture, experimental results
-3. Include concrete examples and equations, not just abstract descriptions
-4. If full content cannot be retrieved, say so immediately — don't repeatedly try failed approaches
+1. Prefer HTML version from `ar5iv.labs.arxiv.org` (replace `arxiv.org/abs/` with `ar5iv.labs.arxiv.org/html/`); use PDF as fallback when ar5iv is unavailable
+2. Use Playwright to screenshot important figures (architecture diagrams, experiment results, etc.), save to `images/` subdirectory and embed in the summary markdown
+3. Provide structured summary: problem definition, method, key contributions, architecture, experimental results
+4. Include concrete examples and equations, not just abstract descriptions
+5. If full content cannot be retrieved, say so immediately — don't repeatedly try failed approaches
