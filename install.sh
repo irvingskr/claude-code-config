@@ -218,8 +218,7 @@ install_skills() {
 
 install_lessons() {
     info "Installing lessons.md template..."
-    local target="$CLAUDE_DIR/memory/lessons.md"
-    mkdir -p "$CLAUDE_DIR/memory"
+    local target="$CLAUDE_DIR/lessons.md"
 
     if [[ -f "$target" ]]; then
         warn "lessons.md already exists -- skipping"

@@ -5,7 +5,7 @@
 ### Architecture
 
 - `~/.claude/CLAUDE.md`: Global instructions, auto-loaded
-- `~/.claude/memory/lessons.md`: Correction log, **auto-injected via SessionStart hook**
+- `~/.claude/lessons.md`: Correction log, **auto-injected via SessionStart hook**
 - Project `MEMORY.md`: `~/.claude/projects/<path>/memory/MEMORY.md`, auto-loaded
 
 ### Self-Correction
@@ -13,7 +13,7 @@
 **Identifying corrections** (low threshold): user points out errors, says "remember/don't again...", shows frustration, same operation fails 2+ times. When in doubt, treat it as a correction.
 
 **Post-correction flow**:
-1. **Immediately** write to `~/.claude/memory/lessons.md` (date, context, mistake, rule) — the only valid path; any path containing `projects/` is WRONG
+1. **Immediately** write to `~/.claude/lessons.md` (date, context, mistake, rule) — the only valid path; any path containing `projects/` is WRONG
 2. Rules must be concrete instructions to prevent recurrence
 3. Only after writing, continue handling the user's request
 
