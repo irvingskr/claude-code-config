@@ -12,7 +12,7 @@ Production-ready configuration for [Claude Code](https://claude.com/claude-code)
 ├── rules/                 # Multi-language coding standards (common + python/typescript/golang)
 ├── mcp/                   # MCP server config (Lark-MCP only)
 ├── plugins/               # Plugin installation guide (19 plugins, 5 marketplaces)
-├── skills/                # Custom skills (paper-reading, frontend-slides)
+├── skills/                # Custom skills (paper-reading)
 └── install.sh             # One-command installer
 ```
 
@@ -86,6 +86,14 @@ golang/       → gofmt, table-driven tests, gosec
 | [**optimization**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | AWQ, GPTQ, GGUF, Flash Attention, bitsandbytes |
 
 See [`plugins/README.md`](plugins/README.md) for installation details.
+
+### Custom Skills
+
+| Skill | Description |
+|-------|-------------|
+| **paper-reading** | Structured research paper summarization with auto-screenshot of key figures. Uses ar5iv HTML for arXiv papers, Playwright for figure capture, outputs standardized markdown (problem, method, experiments, insights). |
+
+Place custom skills in `skills/<name>/SKILL.md`.
 
 ## Security Note
 
