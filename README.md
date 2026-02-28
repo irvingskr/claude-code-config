@@ -1,4 +1,4 @@
-[Claude Main Branch](https://github.com/Mizoreww/claude-code-config/tree/main) | [中文 README（main）](https://github.com/Mizoreww/claude-code-config/blob/main/README.zh-CN.md) | **Codex Branch**
+[Claude Main Branch](https://github.com/Mizoreww/claude-code-config/tree/main) | [中文 README（main）](https://github.com/Mizoreww/claude-code-config/blob/main/README.zh-CN.md) | **English** | [中文](./README.zh-CN.md)
 
 # Codex Configuration
 
@@ -58,11 +58,11 @@ This keeps common principles and language-specific practices aligned.
 
 | Skill Set | Source | Coverage |
 |----------|--------|----------|
-| superpowers | obra/superpowers | planning, debugging, TDD workflows |
-| everything-claude-code | affaan-m/everything-claude-code | language patterns, testing, security, verification |
-| anthropic skills packs | anthropics/skills | document tools, frontend design, canvas/art, MCP builder |
-| claude-mem | thedotmack/claude-mem | persistent memory workflows (`make-plan`, `do`, `mem-search`) |
-| AI research skills | zechenzhangAGI/AI-research-SKILLs | fine-tuning, post-training, inference, distributed training, optimization |
+| superpowers | [obra/superpowers](https://github.com/obra/superpowers) | planning, debugging, TDD workflows |
+| everything-claude-code | [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) | language patterns, testing, security, verification |
+| anthropic skills packs | [anthropics/skills](https://github.com/anthropics/skills) | document tools, frontend design, canvas/art, MCP builder |
+| claude-mem | [thedotmack/claude-mem](https://github.com/thedotmack/claude-mem) | persistent memory workflows (`make-plan`, `do`, `mem-search`) |
+| AI research skills | [zechenzhangAGI/AI-research-SKILLs](https://github.com/zechenzhangAGI/AI-research-SKILLs) | fine-tuning, post-training, inference, distributed training, optimization |
 
 ### MCP Integration
 
@@ -70,10 +70,10 @@ Default MCP servers in `config.toml`:
 
 | Server | Purpose |
 |--------|---------|
-| Lark MCP | Feishu/Lark docs, sheets, chats, base |
-| Context7 | up-to-date library documentation lookup |
-| GitHub | issue/PR/repo workflows |
-| Playwright | browser automation and E2E testing |
+| Lark MCP | Feishu/Lark docs, sheets, chats, base ([repo](https://github.com/larksuite/lark-openapi-mcp)) |
+| Context7 | up-to-date library documentation lookup ([repo](https://github.com/upstash/context7)) |
+| GitHub | issue/PR/repo workflows ([repo](https://github.com/github/github-mcp-server)) |
+| Playwright | browser automation and E2E testing ([repo](https://github.com/microsoft/playwright-mcp)) |
 
 ## Installation Notes
 
