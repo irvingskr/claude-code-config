@@ -2,19 +2,16 @@
 
 # Codex Configuration
 
-Production-ready configuration for Codex: global instructions, Codex-native persistent memory, layered coding standards through skills, MCP integration, and one-command bootstrap.
+Production-ready configuration for Codex: global instructions, lessons-driven self-correction, layered coding standards through skills, MCP integration, and one-command bootstrap.
 
 ## Directory Structure
 
 ```
 .
 ├── AGENTS.md              # Global instructions
-├── config.toml            # Codex settings (model, permissions, MCP, MEMORY.md injection)
+├── config.toml            # Codex settings (model, permissions, MCP, lessons injection)
 ├── lessons.md             # Self-correction source log
-├── codex-mem/             # Codex-native memory CLI
-├── skills/
-│   ├── codex-mem/         # Umbrella memory skill
-│   └── mem-search/        # Codex-compatible memory retrieval skill
+├── skills/                # Optional custom skills
 └── install.sh             # One-command installer
 ```
 
@@ -30,40 +27,21 @@ Then restart Codex.
 
 ## Key Features
 
-### Self-Improvement + Persistent Memory Loop
+### Self-Improvement Loop (Lessons Only)
 
 1. User correction is recorded into `~/.codex/lessons.md`
-2. `codex-mem` writes searchable observations into `~/.codex/memory/codex_mem.db`
-3. `codex-mem build-context` compiles lessons + observations into `~/.codex/MEMORY.md`
-4. New sessions auto-load `~/.codex/MEMORY.md`
-5. Stable patterns are promoted into `~/.codex/AGENTS.md`
+2. New sessions auto-load `~/.codex/lessons.md`
+3. Stable patterns are promoted into `~/.codex/AGENTS.md`
 
-### Codex-Native Memory Injection
+### Lessons Injection
 
 `config.toml` uses:
 
 ```toml
-model_instructions_file = "~/.codex/MEMORY.md"
+model_instructions_file = "~/.codex/lessons.md"
 ```
 
-This keeps lessons and long-term memory context active in one auto-loaded file.
-
-### `codex-mem` (Inspired by claude-mem, built for Codex)
-
-Installed to: `~/.codex/bin/codex-mem`
-
-```bash
-# Add observation
-~/.codex/bin/codex-mem note --type decision --title "..." --details "..."
-
-# Retrieve memory
-~/.codex/bin/codex-mem search --project "$(pwd)" --query "auth retry"
-~/.codex/bin/codex-mem timeline --project "$(pwd)" --query "auth retry"
-~/.codex/bin/codex-mem get --ids 12,15
-
-# Refresh auto-loaded context
-~/.codex/bin/codex-mem build-context --project "$(pwd)" --output ~/.codex/MEMORY.md --lessons ~/.codex/lessons.md
-```
+This keeps correction rules active at session start.
 
 ### Layered Rules via Skills
 
@@ -84,8 +62,6 @@ This keeps common principles and language-specific practices aligned.
 | superpowers | [obra/superpowers](https://github.com/obra/superpowers) | planning, debugging, TDD workflows |
 | everything-claude-code | [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code) | language patterns, testing, security, verification |
 | anthropic skills packs | [anthropics/skills](https://github.com/anthropics/skills) | document tools, frontend design, canvas/art, MCP builder |
-| claude-mem workflows | [thedotmack/claude-mem](https://github.com/thedotmack/claude-mem) | planning/execution skills (`make-plan`, `do`) |
-| codex-mem (local) | this repo | Codex-native persistent memory (`codex-mem`, `mem-search`, `MEMORY.md` sync) |
 | AI research skills | [zechenzhangAGI/AI-research-SKILLs](https://github.com/zechenzhangAGI/AI-research-SKILLs) | fine-tuning, post-training, inference, distributed training, optimization |
 
 ### MCP Integration
