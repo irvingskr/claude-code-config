@@ -1,4 +1,4 @@
-# Codex configuration ported from claude-code-config (English)
+# Codex configuration template
 
 model = "gpt-5.3-codex"
 model_reasoning_effort = "high"

@@ -23,7 +23,7 @@ install_core() {
   cp "$SCRIPT_DIR/lessons.md" "$CODEX_DIR/lessons.md"
 
   if [[ -f "$CODEX_DIR/config.toml" ]]; then
-    warn "~/.codex/config.toml exists. Merge manually with codex/config.toml"
+    warn "~/.codex/config.toml exists. Merge manually with config.toml"
   else
     cp "$SCRIPT_DIR/config.toml" "$CODEX_DIR/config.toml"
   fi
@@ -54,7 +54,7 @@ install_skills() {
     skills/frontend-patterns skills/security-review skills/tdd-workflow skills/verification-loop \
     skills/api-design skills/database-migrations || true
 
-  # AI research set (mapped from plugin names)
+  # AI research set
   python3 "$INSTALLER" --repo zechenzhangAGI/AI-research-SKILLs --path \
     03-fine-tuning/axolotl 03-fine-tuning/llama-factory 03-fine-tuning/peft 03-fine-tuning/unsloth \
     06-post-training/grpo-rl-training 06-post-training/openrlhf 06-post-training/simpo 06-post-training/trl-fine-tuning 06-post-training/verl \
