@@ -1,4 +1,4 @@
-**English** | [中文](./README.zh-CN.md) | [Codex Branch](https://github.com/Mizoreww/claude-code-config/tree/codex)
+**Main English** | [Main 中文](./README.zh-CN.md) | [Codex English](https://github.com/Mizoreww/claude-code-config/blob/codex/README.md) | [Codex 中文](https://github.com/Mizoreww/claude-code-config/blob/codex/README.zh-CN.md)
 
 # Claude Code Configuration
 
@@ -109,11 +109,9 @@ Place custom skills in `skills/<name>/SKILL.md`.
 
 ## Acknowledgements
 
-- [**AI Agent Workflow Orchestration Guidelines**](https://gist.github.com/OmerFarukOruc/a02a5883e27b5b52ce740cadae0e4d60) by [@OmerFarukOruc](https://github.com/OmerFarukOruc) — Inspiration for workflow orchestration
-- [**Harness Engineering**](https://openai.com/index/harness-engineering/) by OpenAI — "Harness Engineering": engineers shift from writing code to designing systems, using agents to generate a million lines of code
 - [**Working for 10 Claude Codes**](https://mp.weixin.qq.com/s/9qPD3gXj3HLmrKC64Q6fbQ) by Hu Yuanming — Practical experience running multiple Claude Code instances in parallel
+- [**Harness Engineering**](https://openai.com/index/harness-engineering/) by OpenAI — "Harness Engineering": engineers shift from writing code to designing systems, using agents to generate a million lines of code
 - [**Claude Code in Action**](https://anthropic.skilljar.com/claude-code-in-action) by Anthropic Academy — Official course covering Claude Code integration, MCP servers, GitHub automation, and dev workflows
-- [**ChatGPT Prompt Engineering for Developers**](https://www.deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers/) by DeepLearning.AI & OpenAI — Introductory prompt engineering course by Andrew Ng and Isa Fulford
 
 ## License
 
