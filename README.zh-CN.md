@@ -12,10 +12,19 @@
 ├── config.toml            # Codex 设置（模型、权限、MCP、lessons 注入）
 ├── lessons.md             # 自我纠正源日志
 ├── skills/                # 可选自定义技能
+├── VERSION                # 安装器版本
 └── install.sh             # 一键安装脚本
 ```
 
 ## 快速开始
+
+一行远程安装：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/claude-code-config/codex/install.sh)
+```
+
+本地安装：
 
 ```bash
 git clone -b codex https://github.com/Mizoreww/claude-code-config.git
@@ -24,6 +33,19 @@ bash install.sh
 ```
 
 然后重启 Codex。
+
+## 安装器参数
+
+```bash
+./install.sh                         # 安装全部（core + mcp + 全部技能）
+./install.sh --core                 # 仅 AGENTS.md / lessons.md / config.toml
+./install.sh --mcp                  # 仅 MCP 服务
+./install.sh --skills core          # 仅核心技能集
+./install.sh --skills ai-research   # 仅 AI 研究技能集
+./install.sh --version              # 查看 source/installed/remote 版本
+./install.sh --uninstall --skills   # 仅卸载受管技能
+./install.sh --dry-run              # 预览变更
+```
 
 ## 核心特性
 
@@ -84,7 +106,7 @@ skills/rules  → claude-rules、python-patterns、golang-patterns、frontend-pa
    - `YOUR_APP_ID` / `YOUR_APP_SECRET`（Lark）
    - `YOUR_GITHUB_PAT`（GitHub MCP）
 2. 该配置使用当前 Codex 配置风格（例如顶层 `web_search = "live"`）。
-3. 如果 `~/.codex/config.toml` 已存在，请手动合并。
+3. 如果 `~/.codex/config.toml` 已存在，安装器会跳过覆盖；如需更新请手动合并。
 
 ## 安全提示
 

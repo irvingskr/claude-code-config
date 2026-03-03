@@ -12,10 +12,19 @@ Production-ready configuration for Codex: global instructions, lessons-driven se
 ├── config.toml            # Codex settings (model, permissions, MCP, lessons injection)
 ├── lessons.md             # Self-correction source log
 ├── skills/                # Optional custom skills
+├── VERSION                # Installer version
 └── install.sh             # One-command installer
 ```
 
 ## Quick Start
+
+One-line remote install:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/claude-code-config/codex/install.sh)
+```
+
+Local install:
 
 ```bash
 git clone -b codex https://github.com/Mizoreww/claude-code-config.git
@@ -24,6 +33,19 @@ bash install.sh
 ```
 
 Then restart Codex.
+
+## Installer Options
+
+```bash
+./install.sh                         # install all (core + mcp + all skills)
+./install.sh --core                 # only AGENTS.md / lessons.md / config.toml
+./install.sh --mcp                  # only MCP servers
+./install.sh --skills core          # only core skill sets
+./install.sh --skills ai-research   # only AI research skill sets
+./install.sh --version              # source/installed/remote version info
+./install.sh --uninstall --skills   # uninstall managed skills only
+./install.sh --dry-run              # preview changes
+```
 
 ## Key Features
 
@@ -84,7 +106,7 @@ Default MCP servers in `config.toml`:
    - `YOUR_APP_ID` / `YOUR_APP_SECRET` (Lark)
    - `YOUR_GITHUB_PAT` (GitHub MCP)
 2. This config uses current Codex style (for example `web_search = "live"` at top-level).
-3. If `~/.codex/config.toml` already exists, merge manually.
+3. If `~/.codex/config.toml` already exists, installer skips overwriting it; merge manually if needed.
 
 ## Security Note
 

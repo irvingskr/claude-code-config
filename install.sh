@@ -1,85 +1,517 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CODEX_DIR="${HOME}/.codex"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALLER="${CODEX_DIR}/skills/.system/skill-installer/scripts/install-skill-from-github.py"
+# ============================================================
+# Codex Configuration Installer
+# https://github.com/Mizoreww/claude-code-config
+# ============================================================
 
-info(){ printf "[INFO] %s\n" "$*"; }
-warn(){ printf "[WARN] %s\n" "$*"; }
+CODEX_DIR="$HOME/.codex"
+REPO_URL="https://github.com/Mizoreww/claude-code-config"
+VERSION_STAMP_FILE="$CODEX_DIR/.claude-code-config-version"
+INSTALLER="$CODEX_DIR/skills/.system/skill-installer/scripts/install-skill-from-github.py"
 
-backup() {
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+info()  { echo -e "${BLUE}[INFO]${NC} $*"; }
+ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
+warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
+error() { echo -e "${RED}[ERROR]${NC} $*"; }
+
+SCRIPT_DIR=""
+REMOTE_MODE=false
+
+DRY_RUN=false
+FORCE=false
+INSTALL_ALL=true
+INSTALL_CORE=false
+INSTALL_MCP=false
+INSTALL_SKILLS=false
+UNINSTALL=false
+SHOW_VERSION=false
+SKILL_GROUP="all"
+UNINSTALL_COMPONENTS=()
+
+MANAGED_SKILLS=(
+  frontend-design pdf docx pptx xlsx canvas-design algorithmic-art mcp-builder
+  python-patterns python-testing golang-patterns golang-testing frontend-patterns
+  security-review tdd-workflow verification-loop api-design database-migrations
+  using-superpowers systematic-debugging writing-plans test-driven-development
+  axolotl llama-factory peft unsloth
+  grpo-rl-training openrlhf simpo trl-fine-tuning verl
+  deepspeed pytorch-fsdp2 megatron-core ray-train
+  awq gptq gguf flash-attention bitsandbytes
+  vllm sglang tensorrt-llm llama-cpp
+  paper-reading
+)
+
+detect_script_dir() {
+  local candidate
+  candidate="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+  if [[ -f "$candidate/AGENTS.md" ]]; then
+    SCRIPT_DIR="$candidate"
+    REMOTE_MODE=false
+    return
+  fi
+
+  REMOTE_MODE=true
+  local tmpdir
+  tmpdir="$(mktemp -d)"
+  trap 'rm -rf "$tmpdir"' EXIT
+
+  local version="${VERSION:-codex}"
+  local tarball_url="$REPO_URL/archive/refs/heads/${version}.tar.gz"
+  if [[ "$version" =~ ^v[0-9] ]]; then
+    tarball_url="$REPO_URL/archive/refs/tags/${version}.tar.gz"
+  fi
+
+  info "Remote mode: downloading $version..."
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$tarball_url" | tar xz -C "$tmpdir" --strip-components=1
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO- "$tarball_url" | tar xz -C "$tmpdir" --strip-components=1
+  else
+    error "Neither curl nor wget found. Install one and retry."
+    exit 1
+  fi
+
+  SCRIPT_DIR="$tmpdir"
+  ok "Source downloaded to temporary directory"
+}
+
+usage() {
+  cat <<EOF2
+Usage: $(basename "$0") [OPTIONS]
+
+Install Codex configuration files.
+
+Options:
+  --all                 Install everything (default)
+  --core                Install AGENTS.md, lessons.md, config.toml
+  --mcp                 Install MCP servers only
+  --skills [GROUP]      Install skills only. GROUP: core, ai-research, all (default: all)
+  --uninstall [COMP...] Uninstall managed files. COMP: --core --mcp --skills
+  --version             Show source / installed / remote versions
+  --dry-run             Preview changes without applying
+  --force               Skip uninstall confirmation
+  -h, --help            Show help
+
+Examples:
+  $(basename "$0")
+  $(basename "$0") --skills core
+  $(basename "$0") --skills ai-research
+  $(basename "$0") --uninstall --skills
+  VERSION=v1.0.0 bash <(curl -fsSL $REPO_URL/raw/codex/install.sh)
+EOF2
+}
+
+parse_args() {
+  if [[ $# -eq 0 ]]; then
+    return
+  fi
+
+  local has_component=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --all)
+        INSTALL_ALL=true
+        shift
+        ;;
+      --core)
+        has_component=true
+        INSTALL_CORE=true
+        shift
+        ;;
+      --mcp)
+        has_component=true
+        INSTALL_MCP=true
+        shift
+        ;;
+      --skills)
+        has_component=true
+        INSTALL_SKILLS=true
+        shift
+        if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
+          case "$1" in
+            core|ai-research|all)
+              SKILL_GROUP="$1"
+              shift
+              ;;
+            *)
+              error "Invalid skill group: $1"
+              exit 1
+              ;;
+          esac
+        fi
+        ;;
+      --uninstall)
+        UNINSTALL=true
+        shift
+        while [[ $# -gt 0 && "$1" =~ ^-- ]]; do
+          case "$1" in
+            --core)
+              UNINSTALL_COMPONENTS+=("core")
+              shift
+              ;;
+            --mcp)
+              UNINSTALL_COMPONENTS+=("mcp")
+              shift
+              ;;
+            --skills)
+              UNINSTALL_COMPONENTS+=("skills")
+              shift
+              ;;
+            --force)
+              FORCE=true
+              shift
+              ;;
+            --dry-run)
+              DRY_RUN=true
+              shift
+              ;;
+            *)
+              break
+              ;;
+          esac
+        done
+        ;;
+      --version)
+        SHOW_VERSION=true
+        shift
+        ;;
+      --dry-run)
+        DRY_RUN=true
+        shift
+        ;;
+      --force)
+        FORCE=true
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        error "Unknown option: $1"
+        usage
+        exit 1
+        ;;
+    esac
+  done
+
+  if $has_component; then
+    INSTALL_ALL=false
+  fi
+}
+
+backup_if_exists() {
   local target="$1"
   if [[ -e "$target" ]]; then
-    cp -r "$target" "${target}.backup.$(date +%Y%m%d%H%M%S)"
+    local backup="${target}.backup.$(date +%Y%m%d%H%M%S)"
+    if $DRY_RUN; then
+      warn "Would backup: $target -> $backup"
+    else
+      cp -r "$target" "$backup"
+      warn "Backed up: $target -> $backup"
+    fi
+  fi
+}
+
+confirm() {
+  local prompt="${1:-Continue?}"
+  if $FORCE; then
+    return 0
+  fi
+  if [[ ! -t 0 ]]; then
+    error "Non-interactive shell detected. Use --force to skip confirmation."
+    exit 1
+  fi
+  echo -en "${YELLOW}${prompt} [y/N] ${NC}"
+  local answer
+  read -r answer
+  [[ "$answer" =~ ^[Yy]$ ]]
+}
+
+get_source_version() {
+  if [[ -f "$SCRIPT_DIR/VERSION" ]]; then
+    tr -d '[:space:]' < "$SCRIPT_DIR/VERSION"
+  else
+    echo "unknown"
+  fi
+}
+
+get_installed_version() {
+  if [[ -f "$VERSION_STAMP_FILE" ]]; then
+    tr -d '[:space:]' < "$VERSION_STAMP_FILE"
+  else
+    echo "not installed"
+  fi
+}
+
+get_remote_version() {
+  local url="$REPO_URL/raw/codex/VERSION"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$url" 2>/dev/null | tr -d '[:space:]' || echo "unavailable"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO- "$url" 2>/dev/null | tr -d '[:space:]' || echo "unavailable"
+  else
+    echo "unavailable"
+  fi
+}
+
+show_version() {
+  local source_ver installed_ver remote_ver
+  source_ver="$(get_source_version)"
+  installed_ver="$(get_installed_version)"
+  remote_ver="$(get_remote_version)"
+
+  echo "codex-config version info:"
+  echo "  Source:    $source_ver"
+  echo "  Installed: $installed_ver"
+  echo "  Remote:    $remote_ver"
+
+  if [[ "$installed_ver" != "not installed" && "$remote_ver" != "unavailable" && "$installed_ver" != "$remote_ver" ]]; then
+    warn "Update available: $installed_ver -> $remote_ver"
+  fi
+}
+
+stamp_version() {
+  local ver
+  ver="$(get_source_version)"
+  if [[ "$ver" != "unknown" && ! $DRY_RUN ]]; then
+    echo "$ver" > "$VERSION_STAMP_FILE"
   fi
 }
 
 install_core() {
+  info "Installing core files..."
   mkdir -p "$CODEX_DIR"
-  backup "$CODEX_DIR/AGENTS.md"
-  backup "$CODEX_DIR/lessons.md"
-  cp "$SCRIPT_DIR/AGENTS.md" "$CODEX_DIR/AGENTS.md"
-  cp "$SCRIPT_DIR/lessons.md" "$CODEX_DIR/lessons.md"
+
+  backup_if_exists "$CODEX_DIR/AGENTS.md"
+  backup_if_exists "$CODEX_DIR/lessons.md"
+
+  if $DRY_RUN; then
+    info "Would copy: AGENTS.md -> $CODEX_DIR/AGENTS.md"
+    info "Would copy: lessons.md -> $CODEX_DIR/lessons.md"
+  else
+    cp "$SCRIPT_DIR/AGENTS.md" "$CODEX_DIR/AGENTS.md"
+    cp "$SCRIPT_DIR/lessons.md" "$CODEX_DIR/lessons.md"
+    ok "AGENTS.md and lessons.md installed"
+  fi
 
   if [[ -f "$CODEX_DIR/config.toml" ]]; then
-    warn "~/.codex/config.toml exists. Merge manually with config.toml"
+    warn "$CODEX_DIR/config.toml exists -- skipping (merge manually if needed)"
   else
-    cp "$SCRIPT_DIR/config.toml" "$CODEX_DIR/config.toml"
+    if $DRY_RUN; then
+      info "Would copy: config.toml -> $CODEX_DIR/config.toml"
+    else
+      cp "$SCRIPT_DIR/config.toml" "$CODEX_DIR/config.toml"
+      ok "config.toml installed"
+    fi
   fi
 }
 
 install_mcp() {
+  info "Installing MCP servers..."
+
+  if ! command -v codex >/dev/null 2>&1; then
+    warn "codex CLI not found. Skip MCP setup."
+    return 0
+  fi
+
+  if $DRY_RUN; then
+    info "Would add MCP server: lark-mcp"
+    info "Would add MCP server: context7"
+    info "Would add MCP server: github"
+    info "Would add MCP server: playwright"
+    return 0
+  fi
+
   codex mcp add lark-mcp -- npx -y @larksuiteoapi/lark-mcp mcp -a YOUR_APP_ID -s YOUR_APP_SECRET || true
   codex mcp add context7 -- npx -y @upstash/context7-mcp || true
   codex mcp add github --env GITHUB_PERSONAL_ACCESS_TOKEN=YOUR_GITHUB_PAT -- npx -y @modelcontextprotocol/server-github || true
   codex mcp add playwright -- npx -y @playwright/mcp@latest || true
+  ok "MCP setup complete (existing entries are ignored)"
 }
 
-install_skills() {
-  if [[ ! -f "$INSTALLER" ]]; then
-    warn "skill-installer not found at $INSTALLER"
-    warn "Install core Codex system skills first, then rerun."
+install_skill_paths() {
+  local repo="$1"
+  shift
+
+  if $DRY_RUN; then
+    info "Would install from $repo: $*"
     return 0
   fi
 
-  # Anthropic skills pack
-  python3 "$INSTALLER" --repo anthropics/skills --path \
-    skills/frontend-design skills/pdf skills/docx skills/pptx skills/xlsx \
-    skills/canvas-design skills/algorithmic-art skills/mcp-builder || true
+  python3 "$INSTALLER" --repo "$repo" --path "$@" || warn "Skill install from $repo returned non-zero (possibly already installed)"
+}
 
-  # Everything Claude Code core set
-  python3 "$INSTALLER" --repo affaan-m/everything-claude-code --path \
-    skills/python-patterns skills/python-testing skills/golang-patterns skills/golang-testing \
-    skills/frontend-patterns skills/security-review skills/tdd-workflow skills/verification-loop \
-    skills/api-design skills/database-migrations || true
-
-  # AI research set
-  python3 "$INSTALLER" --repo zechenzhangAGI/AI-research-SKILLs --path \
-    03-fine-tuning/axolotl 03-fine-tuning/llama-factory 03-fine-tuning/peft 03-fine-tuning/unsloth \
-    06-post-training/grpo-rl-training 06-post-training/openrlhf 06-post-training/simpo 06-post-training/trl-fine-tuning 06-post-training/verl \
-    08-distributed-training/deepspeed 08-distributed-training/pytorch-fsdp2 08-distributed-training/megatron-core 08-distributed-training/ray-train \
-    10-optimization/awq 10-optimization/gptq 10-optimization/gguf 10-optimization/flash-attention 10-optimization/bitsandbytes \
-    12-inference-serving/vllm 12-inference-serving/sglang 12-inference-serving/tensorrt-llm 12-inference-serving/llama-cpp || true
-
-  # Superpowers
-  python3 "$INSTALLER" --repo obra/superpowers --path skills/using-superpowers skills/systematic-debugging skills/writing-plans skills/test-driven-development || true
-
-  # Local bundled skill from this repo
-  if [[ -f "$SCRIPT_DIR/skills/paper-reading/SKILL.md" ]]; then
-    mkdir -p "$CODEX_DIR/skills/paper-reading"
-    cp "$SCRIPT_DIR/skills/paper-reading/SKILL.md" "$CODEX_DIR/skills/paper-reading/SKILL.md"
-    info "Installed local skill: paper-reading"
-  else
+install_local_paper_reading() {
+  if [[ ! -f "$SCRIPT_DIR/skills/paper-reading/SKILL.md" ]]; then
     warn "Local skill missing: skills/paper-reading/SKILL.md"
+    return 0
+  fi
+
+  if $DRY_RUN; then
+    info "Would copy: skills/paper-reading/SKILL.md -> $CODEX_DIR/skills/paper-reading/SKILL.md"
+    return 0
+  fi
+
+  mkdir -p "$CODEX_DIR/skills/paper-reading"
+  cp "$SCRIPT_DIR/skills/paper-reading/SKILL.md" "$CODEX_DIR/skills/paper-reading/SKILL.md"
+  ok "Installed local skill: paper-reading"
+}
+
+install_skills() {
+  info "Installing skills (group: $SKILL_GROUP)..."
+
+  if [[ ! -f "$INSTALLER" ]]; then
+    warn "skill-installer not found at $INSTALLER"
+    warn "Install Codex system skill-installer first, then rerun."
+    install_local_paper_reading
+    return 0
+  fi
+
+  if [[ "$SKILL_GROUP" == "core" || "$SKILL_GROUP" == "all" ]]; then
+    install_skill_paths anthropics/skills \
+      skills/frontend-design skills/pdf skills/docx skills/pptx skills/xlsx \
+      skills/canvas-design skills/algorithmic-art skills/mcp-builder
+
+    install_skill_paths affaan-m/everything-claude-code \
+      skills/python-patterns skills/python-testing skills/golang-patterns skills/golang-testing \
+      skills/frontend-patterns skills/security-review skills/tdd-workflow skills/verification-loop \
+      skills/api-design skills/database-migrations
+
+    install_skill_paths obra/superpowers \
+      skills/using-superpowers skills/systematic-debugging skills/writing-plans skills/test-driven-development
+
+    install_local_paper_reading
+  fi
+
+  if [[ "$SKILL_GROUP" == "ai-research" || "$SKILL_GROUP" == "all" ]]; then
+    install_skill_paths zechenzhangAGI/AI-research-SKILLs \
+      03-fine-tuning/axolotl 03-fine-tuning/llama-factory 03-fine-tuning/peft 03-fine-tuning/unsloth \
+      06-post-training/grpo-rl-training 06-post-training/openrlhf 06-post-training/simpo 06-post-training/trl-fine-tuning 06-post-training/verl \
+      08-distributed-training/deepspeed 08-distributed-training/pytorch-fsdp2 08-distributed-training/megatron-core 08-distributed-training/ray-train \
+      10-optimization/awq 10-optimization/gptq 10-optimization/gguf 10-optimization/flash-attention 10-optimization/bitsandbytes \
+      12-inference-serving/vllm 12-inference-serving/sglang 12-inference-serving/tensorrt-llm 12-inference-serving/llama-cpp
   fi
 }
 
+uninstall() {
+  local components=("${UNINSTALL_COMPONENTS[@]}")
+  if [[ ${#components[@]} -eq 0 ]]; then
+    components=(core mcp skills)
+  fi
+
+  echo ""
+  warn "The following will be removed:"
+  for comp in "${components[@]}"; do
+    case "$comp" in
+      core)
+        echo "  - $CODEX_DIR/AGENTS.md"
+        echo "  - $CODEX_DIR/lessons.md"
+        echo "  - $CODEX_DIR/config.toml"
+        ;;
+      mcp)
+        echo "  - MCP servers: lark-mcp, context7, github, playwright"
+        ;;
+      skills)
+        echo "  - Managed skills under $CODEX_DIR/skills"
+        ;;
+    esac
+  done
+  if [[ -f "$VERSION_STAMP_FILE" ]]; then
+    echo "  - $VERSION_STAMP_FILE"
+  fi
+  echo ""
+
+  if $DRY_RUN; then
+    warn "DRY RUN -- nothing will be removed"
+    return 0
+  fi
+
+  if ! confirm "Proceed with uninstall?"; then
+    info "Cancelled."
+    return 0
+  fi
+
+  for comp in "${components[@]}"; do
+    case "$comp" in
+      core)
+        rm -f "$CODEX_DIR/AGENTS.md" "$CODEX_DIR/lessons.md" "$CODEX_DIR/config.toml"
+        ok "Removed core files"
+        ;;
+      mcp)
+        if command -v codex >/dev/null 2>&1; then
+          codex mcp remove lark-mcp 2>/dev/null || true
+          codex mcp remove context7 2>/dev/null || true
+          codex mcp remove github 2>/dev/null || true
+          codex mcp remove playwright 2>/dev/null || true
+          ok "Removed MCP entries (if present)"
+        else
+          warn "codex CLI not found -- skip MCP removal"
+        fi
+        ;;
+      skills)
+        for skill in "${MANAGED_SKILLS[@]}"; do
+          rm -rf "$CODEX_DIR/skills/$skill"
+        done
+        ok "Removed managed skills"
+        ;;
+    esac
+  done
+
+  rm -f "$VERSION_STAMP_FILE"
+  ok "Uninstall complete"
+}
+
 main() {
-  install_core
-  install_mcp
-  install_skills
-  info "Done. Restart Codex to load new skills and config."
+  detect_script_dir
+  parse_args "$@"
+
+  if $SHOW_VERSION; then
+    show_version
+    exit 0
+  fi
+
+  if $UNINSTALL; then
+    uninstall
+    exit 0
+  fi
+
+  echo ""
+  echo "========================================="
+  echo "  Codex Config Installer"
+  echo "  $(get_source_version)"
+  echo "========================================="
+  echo ""
+
+  if $DRY_RUN; then
+    warn "DRY RUN MODE -- no changes will be made"
+    echo ""
+  fi
+
+  mkdir -p "$CODEX_DIR"
+
+  if $INSTALL_ALL; then
+    install_core
+    install_mcp
+    install_skills
+  else
+    $INSTALL_CORE && install_core
+    $INSTALL_MCP && install_mcp
+    $INSTALL_SKILLS && install_skills
+  fi
+
+  stamp_version
+  ok "Done. Restart Codex to load new skills/config if needed."
 }
 
 main "$@"
