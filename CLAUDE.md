@@ -53,6 +53,10 @@ source $HOME/anaconda3/etc/profile.d/conda.sh && conda activate <env_name>
 - Verify before marking done (run tests, check logs)
 - Fix bugs directly — don't ask for repeated confirmation
 
+## Code Review
+
+Whenever a code review is needed — whether explicitly requested by the user or triggered by a skill (e.g., `code-reviewer`, `simplify`) — always invoke the `mcp__codex-cli__review` tool to perform it. Never substitute the actual review call with a text-only description.
+
 ## Paper Reading
 
 Prefer `ar5iv.labs.arxiv.org` HTML version; fall back to PDF. Screenshot important figures with Playwright. Provide structured summary (problem, method, contributions, experiments). If content is unreachable, say so immediately.
