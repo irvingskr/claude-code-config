@@ -26,10 +26,20 @@ usage_5h=""
 usage_resets=""
 
 fetch_usage() {
-    local creds="$HOME/.claude/.credentials.json"
-    [ -f "$creds" ] || return
-    local token
-    token=$(jq -r '.claudeAiOauth.accessToken // empty' "$creds" 2>/dev/null)
+    local token kc_json
+    # 1) macOS Keychain
+    kc_json=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null)
+    # 2) Linux libsecret (GNOME Keyring / KWallet)
+    [ -z "$kc_json" ] && kc_json=$(secret-tool lookup service "Claude Code-credentials" 2>/dev/null)
+    if [ -n "$kc_json" ]; then
+        token=$(echo "$kc_json" | jq -r '.claudeAiOauth.accessToken // empty' 2>/dev/null)
+    fi
+    # 3) Fall back to credentials file
+    if [ -z "$token" ]; then
+        local creds="$HOME/.claude/.credentials.json"
+        [ -f "$creds" ] || return
+        token=$(jq -r '.claudeAiOauth.accessToken // empty' "$creds" 2>/dev/null)
+    fi
     [ -z "$token" ] && return
     curl -s --max-time 3 \
         -H "Authorization: Bearer $token" \
@@ -113,10 +123,13 @@ fmt_ctx() {
 fmt_resets() {
     local resets_at="$1"
     [ -z "$resets_at" ] && return
+    # Strip microseconds and timezone offset, treat as UTC
+    # "2026-03-05T13:00:00.293168+00:00" -> "2026-03-05T13:00:00"
+    local clean
+    clean=$(echo "$resets_at" | sed 's/\.[0-9]*//; s/[+-][0-9][0-9]:[0-9][0-9]$//; s/Z$//')
     local reset_epoch
-    # macOS: date -j -f, Linux: date -d
-    reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$resets_at" +%s 2>/dev/null \
-        || date -j -f "%Y-%m-%dT%H:%M:%S+00:00" "$resets_at" +%s 2>/dev/null \
+    # macOS: TZ=UTC date -j -f, Linux: date -d (handles ISO natively)
+    reset_epoch=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%S" "$clean" +%s 2>/dev/null \
         || date -d "$resets_at" +%s 2>/dev/null) || return
     local diff=$(( reset_epoch - now ))
     [ "$diff" -le 0 ] && { echo "now"; return; }
