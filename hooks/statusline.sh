@@ -42,7 +42,8 @@ fetch_usage() {
 # Use cache if fresh enough
 now=$(date +%s)
 if [ -f "$USAGE_CACHE" ]; then
-    cache_age=$(( now - $(stat -c %Y "$USAGE_CACHE" 2>/dev/null || echo 0) ))
+    cache_mtime=$(stat -f %m "$USAGE_CACHE" 2>/dev/null || stat -c %Y "$USAGE_CACHE" 2>/dev/null || echo 0)
+    cache_age=$(( now - cache_mtime ))
     if [ "$cache_age" -lt "$CACHE_TTL" ]; then
         usage_5h=$(jq -r '.five_hour.utilization // empty' "$USAGE_CACHE" 2>/dev/null)
         usage_resets=$(jq -r '.five_hour.resets_at // empty' "$USAGE_CACHE" 2>/dev/null)
@@ -113,7 +114,10 @@ fmt_resets() {
     local resets_at="$1"
     [ -z "$resets_at" ] && return
     local reset_epoch
-    reset_epoch=$(date -d "$resets_at" +%s 2>/dev/null) || return
+    # macOS: date -j -f, Linux: date -d
+    reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$resets_at" +%s 2>/dev/null \
+        || date -j -f "%Y-%m-%dT%H:%M:%S+00:00" "$resets_at" +%s 2>/dev/null \
+        || date -d "$resets_at" +%s 2>/dev/null) || return
     local diff=$(( reset_epoch - now ))
     [ "$diff" -le 0 ] && { echo "now"; return; }
     local h=$(( diff / 3600 )) m=$(( diff % 3600 / 60 ))
