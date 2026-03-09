@@ -6,7 +6,7 @@
 
 ![Statusline](assets/statusline.png)
 
-[Claude Code](https://claude.com/claude-code) 的生产级配置——一键安装全局指令、多语言编码规则（Python / TypeScript / Go）、19 个精选插件、自定义技能（paper-reading、[adversarial-review](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review)）、自定义状态栏、MCP 集成，以及跨 session 自动记忆纠正的自我改进循环。
+[Claude Code](https://claude.com/claude-code) 的生产级配置——一键安装全局指令、多语言编码规则（Python / TypeScript / Go）、20 个精选插件、自定义技能（paper-reading、[adversarial-review](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review)）、自定义状态栏、MCP 集成，以及跨 session 自动记忆纠正的自我改进循环。
 
 ## 目录结构
 
@@ -18,7 +18,7 @@
 ├── rules/                 # 多语言编码标准（common + python/typescript/golang）
 ├── hooks/                 # 状态栏：渐变进度条（context + 5h 用量）
 ├── mcp/                   # MCP 服务器配置（Lark-MCP）
-├── plugins/               # 插件安装指南（19 个插件，5 个市场）
+├── plugins/               # 插件安装指南（20 个插件，5 个市场）
 ├── skills/                # 自定义技能（paper-reading、adversarial-review）
 ├── VERSION                # 语义化版本号
 ├── install.sh             # 一键安装脚本（macOS / Linux）
@@ -75,7 +75,7 @@ cd awesome-claude-code-config
 | Skills | 是 | `--skills` |
 | lessons.md | 是（已存在则跳过） | `--lessons` |
 | Plugins（core，14 个） | 是 | `--plugins` |
-| Plugins（ai-research，5 个） | 否 | `--plugins ai-research` |
+| Plugins（ai-research，6 个） | 否 | `--plugins ai-research` |
 | MCP（Lark） | 否 | `--mcp` |
 
 ### 选择性安装
@@ -84,8 +84,8 @@ cd awesome-claude-code-config
 # Bash（macOS / Linux）
 ./install.sh --rules python typescript  # 仅规则
 ./install.sh --plugins                  # 仅核心插件（14 个）
-./install.sh --plugins all              # 全部插件（19 个）
-./install.sh --plugins ai-research      # 仅 AI 研究类插件（5 个）
+./install.sh --plugins all              # 全部插件（20 个）
+./install.sh --plugins ai-research      # 仅 AI 研究类插件（6 个）
 ./install.sh --mcp                      # MCP（Lark）
 ```
 
@@ -93,8 +93,8 @@ cd awesome-claude-code-config
 # PowerShell（Windows）
 .\install.ps1 -Rules python,typescript         # 仅规则
 .\install.ps1 -Plugins                         # 仅核心插件（14 个）
-.\install.ps1 -Plugins -PluginGroup all        # 全部插件（19 个）
-.\install.ps1 -Plugins -PluginGroup ai-research # 仅 AI 研究类插件（5 个）
+.\install.ps1 -Plugins -PluginGroup all        # 全部插件（20 个）
+.\install.ps1 -Plugins -PluginGroup ai-research # 仅 AI 研究类插件（6 个）
 .\install.ps1 -Mcp                             # MCP（Lark）
 ```
 
@@ -182,7 +182,7 @@ golang/       → gofmt、表驱动测试、gosec
 
 ### 插件优先
 
-19 个插件，5 个市场，分为两组：
+20 个插件，5 个市场，分为两组：
 
 **核心插件**（14 个）— 默认安装：
 
@@ -203,10 +203,11 @@ golang/       → gofmt、表驱动测试、gosec
 | **ralph-loop** | claude-plugins-official | 会话感知 AI 助手 REPL |
 | **commit-commands** | claude-plugins-official | Git 提交、清理分支、提交-推送-PR |
 
-**AI 研究插件**（5 个）— 用 `--plugins ai-research` 或 `--plugins all` 安装：
+**AI 研究插件**（6 个）— 用 `--plugins ai-research` 或 `--plugins all` 安装：
 
 | 插件 | 市场 | 功能 |
 |------|------|------|
+| [**tokenization**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | HuggingFace Tokenizers、SentencePiece |
 | [**fine-tuning**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | Axolotl、LLaMA-Factory、PEFT、Unsloth |
 | [**post-training**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | GRPO、RLHF、DPO、SimPO |
 | [**inference-serving**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | vLLM、SGLang、TensorRT-LLM、llama.cpp |

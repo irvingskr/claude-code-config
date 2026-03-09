@@ -1,6 +1,6 @@
 # Plugins
 
-19 plugins across 5 marketplaces. Context7, GitHub, Playwright migrated from MCP to official plugins.
+20 plugins across 5 marketplaces. Context7, GitHub, Playwright migrated from MCP to official plugins.
 
 ## Plugin List
 
@@ -20,6 +20,7 @@
 | **code-simplifier** | claude-plugins-official | Code simplification and refactoring |
 | **ralph-loop** | claude-plugins-official | Session-aware AI assistant REPL |
 | **commit-commands** | claude-plugins-official | Git commit, clean branches, commit-push-PR |
+| [**tokenization**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | HuggingFace Tokenizers, SentencePiece |
 | [**fine-tuning**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | Axolotl, LLaMA-Factory, PEFT, Unsloth |
 | [**post-training**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | GRPO, RLHF, DPO, SimPO |
 | [**inference-serving**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | vLLM, SGLang, TensorRT-LLM, llama.cpp |

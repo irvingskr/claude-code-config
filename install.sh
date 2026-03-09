@@ -232,6 +232,7 @@ PLUGINS_CORE=(
 )
 
 PLUGINS_AI_RESEARCH=(
+    "tokenization@ai-research-skills"
     "fine-tuning@ai-research-skills"
     "post-training@ai-research-skills"
     "inference-serving@ai-research-skills"

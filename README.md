@@ -6,7 +6,7 @@
 
 ![Statusline](assets/statusline.png)
 
-Production-ready configuration for [Claude Code](https://claude.com/claude-code) — one-command install of global instructions, multi-language coding rules (Python / TypeScript / Go), 19 curated plugins, custom skills (paper-reading, [adversarial-review](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review)), custom status bar, MCP integration, and a self-improvement loop that remembers corrections across sessions.
+Production-ready configuration for [Claude Code](https://claude.com/claude-code) — one-command install of global instructions, multi-language coding rules (Python / TypeScript / Go), 20 curated plugins, custom skills (paper-reading, [adversarial-review](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review)), custom status bar, MCP integration, and a self-improvement loop that remembers corrections across sessions.
 
 ## Directory Structure
 
@@ -18,7 +18,7 @@ Production-ready configuration for [Claude Code](https://claude.com/claude-code)
 ├── rules/                 # Multi-language coding standards (common + python/typescript/golang)
 ├── hooks/                 # Statusline with gradient progress bars (context + 5h usage)
 ├── mcp/                   # MCP server config (Lark-MCP)
-├── plugins/               # Plugin installation guide (19 plugins, 5 marketplaces)
+├── plugins/               # Plugin installation guide (20 plugins, 5 marketplaces)
 ├── skills/                # Custom skills (paper-reading, adversarial-review)
 ├── VERSION                # Semantic version number
 ├── install.sh             # One-command installer (macOS / Linux)
@@ -75,7 +75,7 @@ cd awesome-claude-code-config
 | Skills | Yes | `--skills` |
 | lessons.md | Yes (skip if exists) | `--lessons` |
 | Plugins (core, 14) | Yes | `--plugins` |
-| Plugins (ai-research, 5) | No | `--plugins ai-research` |
+| Plugins (ai-research, 6) | No | `--plugins ai-research` |
 | MCP (Lark) | No | `--mcp` |
 
 ### Selective Install
@@ -84,8 +84,8 @@ cd awesome-claude-code-config
 # Bash (macOS / Linux)
 ./install.sh --rules python typescript  # Rules only
 ./install.sh --plugins                  # Core plugins only (14)
-./install.sh --plugins all              # All plugins (19)
-./install.sh --plugins ai-research      # AI research plugins only (5)
+./install.sh --plugins all              # All plugins (20)
+./install.sh --plugins ai-research      # AI research plugins only (6)
 ./install.sh --mcp                      # MCP (Lark)
 ```
 
@@ -93,8 +93,8 @@ cd awesome-claude-code-config
 # PowerShell (Windows)
 .\install.ps1 -Rules python,typescript         # Rules only
 .\install.ps1 -Plugins                         # Core plugins only (14)
-.\install.ps1 -Plugins -PluginGroup all        # All plugins (19)
-.\install.ps1 -Plugins -PluginGroup ai-research # AI research plugins only (5)
+.\install.ps1 -Plugins -PluginGroup all        # All plugins (20)
+.\install.ps1 -Plugins -PluginGroup ai-research # AI research plugins only (6)
 .\install.ps1 -Mcp                             # MCP (Lark)
 ```
 
@@ -182,7 +182,7 @@ golang/       → gofmt, table-driven tests, gosec
 
 ### Plugin-First Approach
 
-19 plugins across 5 marketplaces, organized into two groups:
+20 plugins across 5 marketplaces, organized into two groups:
 
 **Core plugins** (14) — installed by default:
 
@@ -203,10 +203,11 @@ golang/       → gofmt, table-driven tests, gosec
 | **ralph-loop** | claude-plugins-official | Session-aware AI assistant REPL |
 | **commit-commands** | claude-plugins-official | Git commit, clean branches, commit-push-PR |
 
-**AI Research plugins** (5) — install with `--plugins ai-research` or `--plugins all`:
+**AI Research plugins** (6) — install with `--plugins ai-research` or `--plugins all`:
 
 | Plugin | Marketplace | What It Does |
 |--------|-------------|--------------|
+| [**tokenization**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | HuggingFace Tokenizers, SentencePiece |
 | [**fine-tuning**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | Axolotl, LLaMA-Factory, PEFT, Unsloth |
 | [**post-training**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | GRPO, RLHF, DPO, SimPO |
 | [**inference-serving**](https://github.com/Orchestra-Research/AI-Research-SKILLs) | ai-research-skills | vLLM, SGLang, TensorRT-LLM, llama.cpp |

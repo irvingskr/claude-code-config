@@ -6,6 +6,7 @@
   "enabledPlugins": {
     "document-skills@anthropic-agent-skills": true,
     "example-skills@anthropic-agent-skills": true,
+    "tokenization@ai-research-skills": true,
     "fine-tuning@ai-research-skills": true,
     "post-training@ai-research-skills": true,
     "inference-serving@ai-research-skills": true,
