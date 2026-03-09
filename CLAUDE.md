@@ -47,7 +47,7 @@ source $HOME/anaconda3/etc/profile.d/conda.sh && conda activate <env_name>
 
 ## Workflow
 
-- Include current year in web searches for up-to-date results
+- Web search: before searching, determine the current real date — prefer system command (`date '+%Y-%m-%d'` / `Get-Date -Format 'yyyy-MM-dd'`), fall back to web time API if system clock may be inaccurate. Include the year (and month if relevant) in search queries. Never rely solely on model knowledge or system prompt for the date.
 - Non-trivial tasks (3+ steps): enter Plan Mode first; re-plan on deviation
 - Subagent strategy: one task per subagent, keep main context clean
 - Verify before marking done (run tests, check logs)
