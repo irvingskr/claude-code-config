@@ -8,6 +8,12 @@
 
 Production-ready configuration for [Claude Code](https://claude.com/claude-code) — one-command install of global instructions, multi-language coding rules (Python / TypeScript / Go), 20 curated plugins, custom skills (paper-reading, [adversarial-review](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review)), custom status bar, MCP integration, and a self-improvement loop that remembers corrections across sessions.
 
+## Showcase
+
+![Claude Code Demo](images/claude-code-demo.png)
+
+**Paper Reading Skill in action** — Structured research paper analysis with the `paper-reading` skill. See the full summary: [Attention Is All You Need — Paper Summary](docs/Attention_Is_All_You_Need.md)
+
 ## Directory Structure
 
 ```
@@ -20,6 +26,8 @@ Production-ready configuration for [Claude Code](https://claude.com/claude-code)
 ├── mcp/                   # MCP server config (Lark-MCP)
 ├── plugins/               # Plugin installation guide (20 plugins, 5 marketplaces)
 ├── skills/                # Custom skills (paper-reading, adversarial-review)
+├── docs/                  # Research paper summaries
+├── images/                # Showcase screenshots
 ├── VERSION                # Semantic version number
 ├── install.sh             # One-command installer (macOS / Linux)
 └── install.ps1            # One-command installer (Windows PowerShell)

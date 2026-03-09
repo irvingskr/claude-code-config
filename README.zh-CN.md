@@ -8,6 +8,12 @@
 
 [Claude Code](https://claude.com/claude-code) 的生产级配置——一键安装全局指令、多语言编码规则（Python / TypeScript / Go）、20 个精选插件、自定义技能（paper-reading、[adversarial-review](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review)）、自定义状态栏、MCP 集成，以及跨 session 自动记忆纠正的自我改进循环。
 
+## 展示
+
+![Claude Code 演示](images/claude-code-demo.png)
+
+**论文阅读技能实战** — 使用 `paper-reading` 技能进行结构化论文分析。查看完整总结：[Attention Is All You Need — 论文总结](docs/Attention_Is_All_You_Need.zh-CN.md)
+
 ## 目录结构
 
 ```
@@ -20,6 +26,8 @@
 ├── mcp/                   # MCP 服务器配置（Lark-MCP）
 ├── plugins/               # 插件安装指南（20 个插件，5 个市场）
 ├── skills/                # 自定义技能（paper-reading、adversarial-review）
+├── docs/                  # 论文阅读总结
+├── images/                # 展示截图
 ├── VERSION                # 语义化版本号
 ├── install.sh             # 一键安装脚本（macOS / Linux）
 └── install.ps1            # 一键安装脚本（Windows PowerShell）
