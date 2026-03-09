@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.3.0] - 2026-03-09
+
+### Features
+- Full uninstall now includes plugins and MCP by default (previously omitted)
+- Install warning tracking: failed merges or plugin installs now skip version stamp and report warning count
+- Uninstall backs up `settings.json` to `settings.json.bak` before removal
+- `--all` flag now composes with other flags (e.g., `--all --mcp` installs everything plus MCP)
+- Windows installer checks bash availability and warns if missing (required by statusline and hooks)
+- Adversarial review skill no longer requires missing `brain/principles.md`; uses `reviewer-lenses.md` as self-contained source
+
+### Bug Fixes
+- VERSION environment variable sanitized to prevent command injection in remote install
+- Repeated install no longer creates nested directories (e.g., `paper-reading/paper-reading/`)
+- `stat` fallback order fixed: Linux `stat -c %Y` tried first, macOS `stat -f %m` as fallback
+- Windows installer missing `tokenization` plugin in AI Research group (5/6 → 6/6)
+
+### Documentation
+- Self-improvement loop wording clarified: "auto-saved" → "Claude writes corrections driven by CLAUDE.md instructions"
+- Uninstall examples annotated with "(incl. plugins & MCP)"
+- Manual plugin install docs updated with all marketplace `add` commands and `name@marketplace` syntax
+
+### Design Rationale
+- Warning tracking prevents users from believing a partially-failed install is current
+- Settings backup on uninstall prevents accidental loss of user-owned config merged by the installer
+- VERSION sanitization closes a real attack vector in the remote install path (`bash -c` with untrusted input)
+
+### Notes & Caveats
+- `bypassPermissions` default unchanged (power-user config by design)
+- Adversarial review still requires opposite CLI (`codex`/`claude`) — this is by design, not a bug
+
 ## [1.2.0] - 2026-03-07
 
 ### Features

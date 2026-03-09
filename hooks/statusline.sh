@@ -52,7 +52,7 @@ bg_fetch_usage() {
     # Prevent concurrent fetches
     if [ -f "$USAGE_LOCK" ]; then
         local lock_age lock_mtime
-        lock_mtime=$(stat -f %m "$USAGE_LOCK" 2>/dev/null || stat -c %Y "$USAGE_LOCK" 2>/dev/null || echo 0)
+        lock_mtime=$(stat -c %Y "$USAGE_LOCK" 2>/dev/null || stat -f %m "$USAGE_LOCK" 2>/dev/null || echo 0)
         lock_age=$(( $(date +%s) - lock_mtime ))
         # Stale lock (>30s) — remove and continue
         [ "$lock_age" -lt 30 ] && return
@@ -111,7 +111,7 @@ bg_fetch_usage() {
 now=$(date +%s)
 cache_is_fresh=false
 if [ -f "$USAGE_CACHE" ]; then
-    cache_mtime=$(stat -f %m "$USAGE_CACHE" 2>/dev/null || stat -c %Y "$USAGE_CACHE" 2>/dev/null || echo 0)
+    cache_mtime=$(stat -c %Y "$USAGE_CACHE" 2>/dev/null || stat -f %m "$USAGE_CACHE" 2>/dev/null || echo 0)
     cache_age=$(( now - cache_mtime ))
     if [ "$cache_age" -lt "$CACHE_TTL" ]; then
         cache_is_fresh=true

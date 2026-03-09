@@ -33,10 +33,18 @@
 ./install.sh --plugins
 ```
 
-Or manually — add marketplaces then install plugins:
+Or manually — add marketplaces then install plugins using `name@marketplace` syntax:
 
 ```bash
+# Add required marketplaces
 claude plugin marketplace add https://github.com/anthropics/claude-plugins-official
-claude plugin install superpowers --marketplace claude-plugins-official
+claude plugin marketplace add https://github.com/anthropics/skills
+claude plugin marketplace add https://github.com/affaan-m/everything-claude-code
+claude plugin marketplace add https://github.com/thedotmack/claude-mem
+claude plugin marketplace add https://github.com/zechenzhangAGI/AI-research-SKILLs
+
+# Install plugins (name@marketplace)
+claude plugin install superpowers@claude-plugins-official
+claude plugin install everything-claude-code@everything-claude-code
 # ... repeat for each plugin above
 ```

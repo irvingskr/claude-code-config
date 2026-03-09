@@ -102,14 +102,14 @@ cd awesome-claude-code-config
 
 ```bash
 # Bash (macOS / Linux)
-./install.sh --uninstall                # Remove everything
+./install.sh --uninstall                # Remove everything (incl. plugins & MCP)
 ./install.sh --uninstall --rules        # Remove rules only
 ./install.sh --uninstall --force        # Skip confirmation (CI/non-interactive)
 ```
 
 ```powershell
 # PowerShell (Windows)
-.\install.ps1 -Uninstall                            # Remove everything
+.\install.ps1 -Uninstall                            # Remove everything (incl. plugins & MCP)
 .\install.ps1 -Uninstall -UninstallComponents rules  # Remove rules only
 .\install.ps1 -Uninstall -Force                      # Skip confirmation
 ```
@@ -128,7 +128,7 @@ cd awesome-claude-code-config
 
 ### Self-Improvement Loop
 
-1. User corrects Claude → auto-saved to `~/.claude/lessons.md`
+1. User corrects Claude → Claude writes the correction to `~/.claude/lessons.md` (driven by CLAUDE.md instructions)
 2. Next session → `SessionStart` hook auto-injects lessons into context
 3. Pattern confirmed → rule promoted to `CLAUDE.md`
 
@@ -247,10 +247,10 @@ Requires Codex CLI installed and `OPENAI_API_KEY` set in your environment.
 
 ## Acknowledgements
 
-- [**Claude Code Best Practice**](https://github.com/shanraisshan/claude-code-best-practice) by shanraisshan — Comprehensive best practices, workflows, and implementation patterns for Claude Code
+- [**Claude Code in Action**](https://anthropic.skilljar.com/claude-code-in-action) by Anthropic Academy — Official course covering Claude Code integration, MCP servers, GitHub automation, and dev workflows
 - [**Working for 10 Claude Codes**](https://mp.weixin.qq.com/s/9qPD3gXj3HLmrKC64Q6fbQ) by Hu Yuanming — Practical experience running multiple Claude Code instances in parallel
 - [**Harness Engineering**](https://openai.com/index/harness-engineering/) by OpenAI — "Harness Engineering": engineers shift from writing code to designing systems, using agents to generate a million lines of code
-- [**Claude Code in Action**](https://anthropic.skilljar.com/claude-code-in-action) by Anthropic Academy — Official course covering Claude Code integration, MCP servers, GitHub automation, and dev workflows
+- [**Claude Code Best Practice**](https://github.com/shanraisshan/claude-code-best-practice) by shanraisshan — Comprehensive best practices, workflows, and implementation patterns for Claude Code
 
 ## License
 

@@ -77,6 +77,7 @@ function Invoke-Retry {
 
 $SCRIPT_DIR = ""
 $REMOTE_MODE = $false
+$InstallWarnings = 0
 
 function Initialize-ScriptDir {
     $script:SCRIPT_DIR = $PSScriptRoot
@@ -276,6 +277,7 @@ function Install-Settings {
         Set-StrictMode -Version Latest
         Write-Err "Merge failed: $_"
         Write-Warn "Please merge manually: $source -> $target"
+        $script:InstallWarnings++
     }
 }
 
@@ -290,6 +292,7 @@ function Install-Rules {
     if ($DryRun) {
         Write-Info "Would copy: rules\common\ -> $commonDst"
     } else {
+        if (Test-Path $commonDst) { Remove-Item $commonDst -Recurse -Force }
         Copy-Item $commonSrc $commonDst -Recurse -Force
         Write-Ok "Common rules installed"
     }
@@ -311,6 +314,7 @@ function Install-Rules {
             if ($DryRun) {
                 Write-Info "Would copy: rules\$lang\ -> $langDst"
             } else {
+                if (Test-Path $langDst) { Remove-Item $langDst -Recurse -Force }
                 Copy-Item $langSrc $langDst -Recurse -Force
                 Write-Ok "$lang rules installed"
             }
@@ -340,6 +344,7 @@ function Install-Skills {
         if ($DryRun) {
             Write-Info "Would copy: skills\$skill\ -> $dst"
         } else {
+            if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
             Copy-Item $_.FullName $dst -Recurse -Force
             Write-Ok "Skill installed: $skill"
         }
@@ -379,6 +384,14 @@ function Install-Hooks {
 
     # Ensure jq is available (required by statusline.sh)
     Install-Jq
+
+    # Check bash availability (required by statusline and SessionStart hooks)
+    if (-not (Get-Command bash -ErrorAction SilentlyContinue)) {
+        Write-Warn "bash not found in PATH. Statusline and SessionStart hooks require bash."
+        Write-Warn "  Install Git for Windows (includes Git Bash): https://git-scm.com/download/win"
+        Write-Warn "  Or install WSL: wsl --install"
+        $script:InstallWarnings++
+    }
 }
 
 function Install-Jq {
@@ -457,6 +470,7 @@ $PLUGINS_CORE = @(
 )
 
 $PLUGINS_AI_RESEARCH = @(
+    "tokenization@ai-research-skills"
     "fine-tuning@ai-research-skills"
     "post-training@ai-research-skills"
     "inference-serving@ai-research-skills"
@@ -521,7 +535,7 @@ function Install-Plugins {
                 & claude plugin install "$entry" 2>$null
             }
             if ($ok) { Write-Ok "Plugin installed: $pluginName" }
-            else { Write-Warn "Plugin $pluginName could not be installed, skipping" }
+            else { Write-Warn "Plugin $pluginName could not be installed, skipping"; $script:InstallWarnings++ }
         }
     }
 }
@@ -531,7 +545,7 @@ function Install-Plugins {
 function Invoke-Uninstall {
     $components = $UninstallComponents
     if (-not $components -or $components.Count -eq 0) {
-        $components = @("claude-md", "settings", "rules", "skills", "lessons", "hooks")
+        $components = @("claude-md", "settings", "rules", "skills", "lessons", "hooks", "plugins", "mcp")
     }
 
     Write-Host ""
@@ -571,7 +585,12 @@ function Invoke-Uninstall {
             }
             "settings" {
                 $p = Join-Path $CLAUDE_DIR "settings.json"
-                if (Test-Path $p) { Remove-Item $p -Force; Write-Ok "Removed settings.json" }
+                if (Test-Path $p) {
+                    $bak = Join-Path $CLAUDE_DIR "settings.json.bak"
+                    Copy-Item $p $bak -Force
+                    Write-Ok "Backed up settings.json -> settings.json.bak"
+                    Remove-Item $p -Force; Write-Ok "Removed settings.json"
+                }
             }
             "rules" {
                 $p = Join-Path $CLAUDE_DIR "rules"
@@ -745,10 +764,20 @@ function Main {
         if ($Plugins) { Install-Plugins }
     }
 
-    if (-not $DryRun) { Save-VersionStamp }
+    if (-not $DryRun) {
+        if ($InstallWarnings -eq 0) {
+            Save-VersionStamp
+        } else {
+            Write-Warn "Skipping version stamp due to $InstallWarnings warning(s)"
+        }
+    }
 
     Write-Host ""
-    Write-Ok "Installation complete! ($sourceVer)"
+    if ($InstallWarnings -gt 0) {
+        Write-Warn "Installation completed with $InstallWarnings warning(s) - review messages above"
+    } else {
+        Write-Ok "Installation complete! ($sourceVer)"
+    }
     Write-Host ""
     Write-Info "Next steps:"
     Write-Host "  1. Restart Claude Code for changes to take effect"

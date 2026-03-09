@@ -64,6 +64,11 @@ detect_script_dir() {
         trap 'rm -rf "$tmpdir"' EXIT
 
         local version="${VERSION:-main}"
+        # Sanitize VERSION to prevent command injection
+        if [[ ! "$version" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+            error "Invalid VERSION value: $version (only alphanumeric, dots, hyphens, underscores allowed)"
+            exit 1
+        fi
         local tarball_url="$REPO_URL/archive/refs/heads/${version}.tar.gz"
         # If version looks like a tag (v1.0.0), use tags URL
         if [[ "$version" =~ ^v[0-9] ]]; then
@@ -197,6 +202,8 @@ EOF
 
 DRY_RUN=false
 INSTALL_ALL=true
+EXPLICIT_ALL=false
+INSTALL_WARNINGS=0
 INSTALL_RULES=false
 INSTALL_SKILLS=false
 INSTALL_LESSONS=false
@@ -253,6 +260,7 @@ parse_args() {
         case "$1" in
             --all)
                 INSTALL_ALL=true
+                EXPLICIT_ALL=true
                 shift
                 ;;
             --rules)
@@ -357,7 +365,8 @@ parse_args() {
         esac
     done
 
-    if $has_component; then
+    # Only disable INSTALL_ALL if --all was NOT explicitly set
+    if $has_component && ! $EXPLICIT_ALL; then
         INSTALL_ALL=false
     fi
 }
@@ -409,6 +418,7 @@ install_settings() {
         warn "  Cannot perform smart merge. Please merge manually:"
         warn "  Source: $SCRIPT_DIR/settings.json"
         warn "  Target: $CLAUDE_DIR/settings.json"
+        (( INSTALL_WARNINGS++ ))
         return
     fi
 
@@ -466,6 +476,7 @@ install_settings() {
         rm -f "$merged"
         error "Merge produced invalid JSON — keeping existing file"
         warn "Please merge manually: $incoming -> $existing"
+        (( INSTALL_WARNINGS++ ))
     fi
 }
 
@@ -478,6 +489,7 @@ install_rules() {
     if $DRY_RUN; then
         info "Would copy: rules/common/ -> $CLAUDE_DIR/rules/common/"
     else
+        rm -rf "$CLAUDE_DIR/rules/common"
         cp -r "$SCRIPT_DIR/rules/common" "$CLAUDE_DIR/rules/common"
         ok "Common rules installed"
     fi
@@ -502,6 +514,7 @@ install_rules() {
             if $DRY_RUN; then
                 info "Would copy: rules/$lang/ -> $CLAUDE_DIR/rules/$lang/"
             else
+                rm -rf "$CLAUDE_DIR/rules/$lang"
                 cp -r "$SCRIPT_DIR/rules/$lang" "$CLAUDE_DIR/rules/$lang"
                 ok "$lang rules installed"
             fi
@@ -529,6 +542,7 @@ install_skills() {
         if $DRY_RUN; then
             info "Would copy: skills/$skill/ -> $CLAUDE_DIR/skills/$skill/"
         else
+            rm -rf "$CLAUDE_DIR/skills/$skill"
             cp -r "$skill_dir" "$CLAUDE_DIR/skills/$skill"
             ok "Skill installed: $skill"
         fi
@@ -659,6 +673,7 @@ install_plugins() {
                 ok "Plugin installed: $plugin_name"
             else
                 warn "Plugin $plugin_name could not be installed, skipping"
+                (( INSTALL_WARNINGS++ ))
             fi
         fi
     done
@@ -671,7 +686,7 @@ uninstall() {
 
     # If no specific components, uninstall everything
     if [[ ${#components[@]} -eq 0 ]]; then
-        components=(claude-md settings rules skills lessons hooks)
+        components=(claude-md settings rules skills lessons hooks plugins mcp)
     fi
 
     echo ""
@@ -708,7 +723,12 @@ uninstall() {
             claude-md)
                 rm -f "$CLAUDE_DIR/CLAUDE.md" && ok "Removed CLAUDE.md" ;;
             settings)
-                rm -f "$CLAUDE_DIR/settings.json" && ok "Removed settings.json" ;;
+                if [[ -f "$CLAUDE_DIR/settings.json" ]]; then
+                    cp "$CLAUDE_DIR/settings.json" "$CLAUDE_DIR/settings.json.bak"
+                    ok "Backed up settings.json -> settings.json.bak"
+                    rm -f "$CLAUDE_DIR/settings.json" && ok "Removed settings.json"
+                fi
+                ;;
             rules)
                 rm -rf "$CLAUDE_DIR/rules" && ok "Removed rules/" ;;
             skills)
@@ -831,13 +851,21 @@ main() {
         $INSTALL_PLUGINS && install_plugins
     fi
 
-    # Stamp version
+    # Stamp version (skip if there were critical warnings)
     if ! $DRY_RUN; then
-        stamp_version
+        if [[ $INSTALL_WARNINGS -eq 0 ]]; then
+            stamp_version
+        else
+            warn "Skipping version stamp due to $INSTALL_WARNINGS warning(s)"
+        fi
     fi
 
     echo ""
-    ok "Installation complete! ($(get_source_version))"
+    if [[ $INSTALL_WARNINGS -gt 0 ]]; then
+        warn "Installation completed with $INSTALL_WARNINGS warning(s) — review messages above"
+    else
+        ok "Installation complete! ($(get_source_version))"
+    fi
     echo ""
     info "Next steps:"
     echo "  1. Restart Claude Code for changes to take effect"
