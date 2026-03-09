@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.4.0] - 2026-03-09
+
+### Features
+- **Interactive installer**: `./install.sh` with no args launches a multi-select menu — toggle components by number, confirm with Enter
+- **Plugin groups simplified**: All 13 general plugins merged into one Essential group (on by default); claude-mem separated as standalone toggle (off by default)
+  - Essential (13): everything-claude-code, superpowers, code-review, context7, commit-commands, document-skills, playwright, feature-dev, code-simplifier, ralph-loop, frontend-design, example-skills, github
+  - claude-mem (1): separated — injects ~3k tokens/session (observation index + session summary)
+- **Language rules opt-in**: Python/TypeScript/Go rules are off by default in interactive mode — only install what your projects need
+- **Automatic cleanup**: When selecting specific language rules, previously installed unselected language dirs are removed
+- **Arrow-key interactive menu**: ↑↓ navigate, Enter to toggle, Submit button to confirm
+- **New CLI flags**: `--plugins essential`, `--plugins claude-mem` for fine-grained plugin group control
+
+### Design Rationale
+- Addresses context accumulation issue (#7): default install was injecting ~9k tokens of rules (including unused languages) + heavy plugin skill lists into every session
+- Interactive menu replaces the need to remember CLI flags — users see all options at a glance with sensible defaults
+- claude-mem separated as standalone toggle — it's the only plugin injecting ~3k tokens at SessionStart (observation index + session summary); other Extended plugins only register tool/skill names
+- Non-interactive fallback preserved: piped installs and `--all` behave as before for CI/automation
+
+### Notes & Caveats
+- `--all` still installs Essential + Extended plugins (same as old `--plugins core`), not AI Research
+- Remote install (`bash <(curl ...) --all`) requires `--all` flag now — bare remote install without args falls back to install-all since stdin is not a terminal
+- Windows `install.ps1` not yet updated with interactive menu or plugin group split
+
 ## [1.3.0] - 2026-03-09
 
 ### Features

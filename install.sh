@@ -16,6 +16,8 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+BOLD='\033[1m'
+DIM='\033[2m'
 NC='\033[0m'
 
 info()  { echo -e "${BLUE}[INFO]${NC} $*"; }
@@ -167,16 +169,18 @@ Usage: $(basename "$0") [OPTIONS]
 
 Install Claude Code configuration files.
 
+Running without options launches an interactive component selector.
+
 Options:
-    --all               Install everything (default; MCP excluded, see --mcp)
+    --all               Install everything (MCP excluded, see --mcp)
     --rules LANG...     Install common + specific language rules
                         Available: python, typescript, golang
     --skills            Install custom skills only
     --lessons           Install lessons.md template only
     --hooks             Install hooks (statusline) only
     --mcp               Install MCP servers (Lark) — not included in --all
-    --plugins [GROUP]   Install plugins (default: core)
-                        Groups: core, ai-research, all
+    --plugins [GROUP]   Install plugins
+                        Groups: essential (13), claude-mem, ai-research, all
     --claude-md         Install CLAUDE.md only
     --settings          Install settings.json only
     --uninstall [COMP]  Remove installed files (optionally: rules, skills, settings, etc.)
@@ -186,22 +190,21 @@ Options:
     -h, --help          Show this help
 
 Examples:
-    $(basename "$0")                                 # Install everything (core plugins)
-    $(basename "$0") --rules python golang           # Install common + Python + Go rules
-    $(basename "$0") --plugins                       # Install core plugins
-    $(basename "$0") --plugins all                   # Install all plugins
-    $(basename "$0") --plugins ai-research           # Install AI research plugins only
+    $(basename "$0")                                 # Interactive selector
+    $(basename "$0") --all                           # Install everything
+    $(basename "$0") --rules python golang           # Common + Python + Go rules
+    $(basename "$0") --plugins essential             # Essential plugins only
+    $(basename "$0") --plugins all                   # All plugins
     $(basename "$0") --uninstall                     # Uninstall everything
-    $(basename "$0") --uninstall --rules             # Uninstall rules only
-    $(basename "$0") --dry-run                       # Preview changes
-    bash <(curl -fsSL $REPO_URL/raw/main/install.sh) # Remote install
+    $(basename "$0") --dry-run --all                 # Preview full install
+    bash <(curl -fsSL $REPO_URL/raw/main/install.sh) --all  # Remote install
 EOF
 }
 
 # --- Flags & state ------------------------------------------------------
 
 DRY_RUN=false
-INSTALL_ALL=true
+INSTALL_ALL=false
 EXPLICIT_ALL=false
 INSTALL_WARNINGS=0
 INSTALL_RULES=false
@@ -215,27 +218,32 @@ INSTALL_SETTINGS=false
 UNINSTALL=false
 FORCE=false
 SHOW_VERSION=false
-PLUGIN_GROUP="core"
+INTERACTIVE=false
 RULE_LANGS=()
+RULE_LANGS_EXPLICIT=false
+PLUGIN_GROUPS=()
 UNINSTALL_COMPONENTS=()
 
 # --- Plugin groups ------------------------------------------------------
 
-PLUGINS_CORE=(
-    "document-skills@anthropic-agent-skills"
-    "example-skills@anthropic-agent-skills"
+PLUGINS_ESSENTIAL=(
     "everything-claude-code@everything-claude-code"
-    "claude-mem@thedotmack"
-    "frontend-design@claude-plugins-official"
-    "context7@claude-plugins-official"
     "superpowers@claude-plugins-official"
     "code-review@claude-plugins-official"
-    "github@claude-plugins-official"
+    "context7@claude-plugins-official"
+    "commit-commands@claude-plugins-official"
+    "document-skills@anthropic-agent-skills"
     "playwright@claude-plugins-official"
     "feature-dev@claude-plugins-official"
     "code-simplifier@claude-plugins-official"
     "ralph-loop@claude-plugins-official"
-    "commit-commands@claude-plugins-official"
+    "frontend-design@claude-plugins-official"
+    "example-skills@anthropic-agent-skills"
+    "github@claude-plugins-official"
+)
+
+PLUGINS_CLAUDE_MEM=(
+    "claude-mem@thedotmack"
 )
 
 PLUGINS_AI_RESEARCH=(
@@ -251,6 +259,12 @@ PLUGINS_AI_RESEARCH=(
 
 parse_args() {
     if [[ $# -eq 0 ]]; then
+        # No args: interactive mode if terminal, else install all
+        if [[ -t 0 && -t 1 ]]; then
+            INTERACTIVE=true
+        else
+            INSTALL_ALL=true
+        fi
         return
     fi
 
@@ -261,11 +275,13 @@ parse_args() {
             --all)
                 INSTALL_ALL=true
                 EXPLICIT_ALL=true
+                has_component=true
                 shift
                 ;;
             --rules)
                 has_component=true
                 INSTALL_RULES=true
+                RULE_LANGS_EXPLICIT=true
                 shift
                 while [[ $# -gt 0 && ! "$1" =~ ^-- ]]; do
                     RULE_LANGS+=("$1")
@@ -299,14 +315,17 @@ parse_args() {
                 # Optional group argument
                 if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
                     case "$1" in
-                        core|ai-research|all)
-                            PLUGIN_GROUP="$1"
+                        essential|claude-mem|core|ai-research|all)
+                            PLUGIN_GROUPS+=("$1")
                             shift
                             ;;
                         *)
-                            # Not a group name, leave for next iteration
+                            # Not a group name, default to core
+                            PLUGIN_GROUPS+=("core")
                             ;;
                     esac
+                else
+                    PLUGIN_GROUPS+=("core")
                 fi
                 ;;
             --claude-md)
@@ -321,6 +340,7 @@ parse_args() {
                 ;;
             --uninstall)
                 UNINSTALL=true
+                has_component=true
                 shift
                 # Collect component flags that follow --uninstall
                 while [[ $# -gt 0 && "$1" =~ ^-- ]]; do
@@ -341,6 +361,7 @@ parse_args() {
                 ;;
             --version)
                 SHOW_VERSION=true
+                has_component=true
                 shift
                 ;;
             --dry-run)
@@ -359,16 +380,230 @@ parse_args() {
                 # Legacy mode: treat bare args as language names
                 has_component=true
                 INSTALL_RULES=true
+                RULE_LANGS_EXPLICIT=true
                 RULE_LANGS+=("$1")
                 shift
                 ;;
         esac
     done
 
-    # Only disable INSTALL_ALL if --all was NOT explicitly set
-    if $has_component && ! $EXPLICIT_ALL; then
-        INSTALL_ALL=false
+    # Only utility flags (--dry-run, --force) with no component selection
+    if ! $has_component; then
+        if [[ -t 0 && -t 1 ]]; then
+            INTERACTIVE=true
+        else
+            INSTALL_ALL=true
+        fi
     fi
+}
+
+# --- Interactive menu ---------------------------------------------------
+
+interactive_menu() {
+    # Item format: "label|description|default_on|id"
+    local items=(
+        "CLAUDE.md|Global instructions template|1|claude-md"
+        "settings.json|Smart-merged Claude Code settings|1|settings"
+        "Common rules|Coding style, git, security, testing|1|rules-common"
+        "Hooks|StatusLine display hook|1|hooks"
+        "Lessons template|Cross-session learning framework|1|lessons"
+        "Custom skills|adversarial-review, paper-reading|1|skills"
+        "Python rules|PEP 8, pytest, type hints, bandit|0|rules-python"
+        "TypeScript rules|Zod, Playwright, immutability|0|rules-ts"
+        "Go rules|gofmt, table-driven tests, gosec|0|rules-go"
+        "Plugins (13)|superpowers, code-review, playwright, feature-dev...|1|plugins-essential"
+        "claude-mem|Cross-session memory (~3k tokens/session)|0|plugins-claude-mem"
+        "AI Research plugins|fine-tuning, inference, optimization...|0|plugins-ai-research"
+        "Lark MCP server|Feishu/Lark integration|0|mcp"
+    )
+
+    local n=${#items[@]}
+    local selected=()
+    local cursor=0
+
+    # Initialize selections from defaults
+    local i
+    for (( i=0; i<n; i++ )); do
+        selected[$i]="$(echo "${items[$i]}" | cut -d'|' -f3)"
+    done
+
+    # Group definitions: start|end|label
+    local groups=(
+        "0|5|Core"
+        "6|8|Language Rules  ${DIM}(only install what your projects need)${NC}"
+        "9|11|Plugins"
+        "12|12|MCP Servers"
+    )
+
+    # Save terminal state
+    local saved_stty
+    saved_stty=$(stty -g 2>/dev/null) || saved_stty=""
+
+    _menu_cleanup() {
+        [[ -n "$saved_stty" ]] && stty "$saved_stty" 2>/dev/null || stty echo 2>/dev/null || true
+        tput cnorm 2>/dev/null || printf '\033[?25h'
+    }
+    trap '_menu_cleanup; exit 0' INT TERM
+
+    _read_key() {
+        local key
+        IFS= read -r -s -n 1 key 2>/dev/null || true
+
+        if [[ "$key" == $'\033' ]]; then
+            local rest=""
+            IFS= read -r -s -n 2 -t 1 rest 2>/dev/null || true
+            case "$rest" in
+                '[A') echo "UP" ;;
+                '[B') echo "DOWN" ;;
+                *)    echo "OTHER" ;;
+            esac
+            return
+        fi
+
+        case "$key" in
+            '')     echo "ENTER" ;;
+            ' ')    echo "SPACE" ;;
+            a|A)    echo "ALL" ;;
+            n|N)    echo "NONE" ;;
+            d|D)    echo "DEFAULT" ;;
+            q|Q)    echo "QUIT" ;;
+            j|J)    echo "DOWN" ;;
+            k|K)    echo "UP" ;;
+            *)      echo "OTHER" ;;
+        esac
+    }
+
+    _draw_menu() {
+        printf '\033[H\033[J'
+
+        echo ""
+        echo -e "  ${BOLD}=========================================${NC}"
+        echo -e "  ${BOLD}  Awesome Claude Code Config Installer${NC}"
+        echo -e "  ${BOLD}  $(get_source_version)${NC}"
+        echo -e "  ${BOLD}=========================================${NC}"
+        echo ""
+        echo -e "  ${DIM}↑↓ move  Enter select  a=all n=none d=defaults q=quit${NC}"
+        echo ""
+
+        for group_def in "${groups[@]}"; do
+            local g_start g_end g_label
+            g_start="$(echo "$group_def" | cut -d'|' -f1)"
+            g_end="$(echo "$group_def" | cut -d'|' -f2)"
+            g_label="$(echo "$group_def" | cut -d'|' -f3-)"
+
+            echo -e "  ${CYAN}${g_label}${NC}"
+
+            local j
+            for (( j=g_start; j<=g_end; j++ )); do
+                local label desc
+                label="$(echo "${items[$j]}" | cut -d'|' -f1)"
+                desc="$(echo "${items[$j]}" | cut -d'|' -f2)"
+
+                local indicator="  "
+                if [[ $j -eq $cursor ]]; then
+                    indicator="${GREEN}>${NC} "
+                fi
+
+                local mark=" "
+                if [[ ${selected[$j]} -eq 1 ]]; then
+                    mark="${GREEN}x${NC}"
+                fi
+
+                if [[ $j -eq $cursor ]]; then
+                    echo -e "  ${indicator}[${mark}] ${BOLD}$(printf '%-24s' "$label")${NC} ${DIM}${desc}${NC}"
+                else
+                    echo -e "  ${indicator}[${mark}] $(printf '%-24s' "$label") ${DIM}${desc}${NC}"
+                fi
+            done
+            echo ""
+        done
+
+        # Submit button
+        if [[ $cursor -eq $n ]]; then
+            echo -e "  ${GREEN}>${NC}  ${BOLD}${GREEN}[ Submit ]${NC}"
+        else
+            echo -e "     ${DIM}[ Submit ]${NC}"
+        fi
+        echo ""
+    }
+
+    # Hide cursor, disable echo
+    tput civis 2>/dev/null || printf '\033[?25l'
+    stty -echo 2>/dev/null || true
+
+    # Main loop
+    while true; do
+        _draw_menu
+
+        local key
+        key="$(_read_key)"
+
+        case "$key" in
+            UP)
+                (( cursor > 0 )) && (( cursor-- )) || true
+                ;;
+            DOWN)
+                (( cursor < n )) && (( cursor++ )) || true
+                ;;
+            ENTER|SPACE)
+                if (( cursor == n )); then
+                    # Submit
+                    break
+                else
+                    selected[$cursor]=$(( 1 - ${selected[$cursor]} ))
+                fi
+                ;;
+            ALL)
+                for (( i=0; i<n; i++ )); do selected[$i]=1; done
+                ;;
+            NONE)
+                for (( i=0; i<n; i++ )); do selected[$i]=0; done
+                ;;
+            DEFAULT)
+                for (( i=0; i<n; i++ )); do
+                    selected[$i]="$(echo "${items[$i]}" | cut -d'|' -f3)"
+                done
+                ;;
+            QUIT)
+                _menu_cleanup
+                echo ""
+                info "Cancelled."
+                exit 0
+                ;;
+        esac
+    done
+
+    # Restore terminal
+    _menu_cleanup
+    trap - INT TERM
+
+    # Map selections to install flags
+    INSTALL_ALL=false
+    RULE_LANGS_EXPLICIT=true
+
+    for (( i=0; i<n; i++ )); do
+        [[ ${selected[$i]} -eq 0 ]] && continue
+
+        local item_id
+        item_id="$(echo "${items[$i]}" | cut -d'|' -f4)"
+
+        case "$item_id" in
+            claude-md)           INSTALL_CLAUDE_MD=true ;;
+            settings)            INSTALL_SETTINGS=true ;;
+            rules-common)        INSTALL_RULES=true ;;
+            hooks)               INSTALL_HOOKS=true ;;
+            lessons)             INSTALL_LESSONS=true ;;
+            skills)              INSTALL_SKILLS=true ;;
+            rules-python)        INSTALL_RULES=true; RULE_LANGS+=("python") ;;
+            rules-ts)            INSTALL_RULES=true; RULE_LANGS+=("typescript") ;;
+            rules-go)            INSTALL_RULES=true; RULE_LANGS+=("golang") ;;
+            plugins-essential)   INSTALL_PLUGINS=true; PLUGIN_GROUPS+=("essential") ;;
+            plugins-extended)    INSTALL_PLUGINS=true; PLUGIN_GROUPS+=("extended") ;;
+            plugins-claude-mem)  INSTALL_PLUGINS=true; PLUGIN_GROUPS+=("claude-mem") ;;
+            plugins-ai-research) INSTALL_PLUGINS=true; PLUGIN_GROUPS+=("ai-research") ;;
+            mcp)                 INSTALL_MCP=true ;;
+        esac
+    done
 }
 
 # --- Confirm prompt (respects --force) ----------------------------------
@@ -484,8 +719,7 @@ install_rules() {
     info "Installing rules..."
     mkdir -p "$CLAUDE_DIR/rules"
 
-    # Always install common rules
-
+    # Always install common rules when any rules are selected
     if $DRY_RUN; then
         info "Would copy: rules/common/ -> $CLAUDE_DIR/rules/common/"
     else
@@ -494,12 +728,12 @@ install_rules() {
         ok "Common rules installed"
     fi
 
-    # Install language-specific rules
+    # Determine which language rules to install
     local langs=()
     if [[ ${#RULE_LANGS[@]} -gt 0 ]]; then
         langs=("${RULE_LANGS[@]}")
-    fi
-    if [[ ${#langs[@]} -eq 0 ]]; then
+    elif ! $RULE_LANGS_EXPLICIT; then
+        # Auto-detect: install all available languages (--all mode or legacy)
         for lang_dir in "$SCRIPT_DIR"/rules/*/; do
             local lang
             lang=$(basename "$lang_dir")
@@ -507,10 +741,10 @@ install_rules() {
             langs+=("$lang")
         done
     fi
+    # If RULE_LANGS_EXPLICIT=true and RULE_LANGS is empty, skip language rules
 
     for lang in "${langs[@]}"; do
         if [[ -d "$SCRIPT_DIR/rules/$lang" ]]; then
-
             if $DRY_RUN; then
                 info "Would copy: rules/$lang/ -> $CLAUDE_DIR/rules/$lang/"
             else
@@ -522,6 +756,33 @@ install_rules() {
             error "Language rules not found: $lang"
         fi
     done
+
+    # Clean up language rule dirs that were NOT selected (from previous installs)
+    if $RULE_LANGS_EXPLICIT; then
+        for existing_dir in "$CLAUDE_DIR"/rules/*/; do
+            [[ -d "$existing_dir" ]] || continue
+            local dir_name
+            dir_name=$(basename "$existing_dir")
+            [[ "$dir_name" == "common" ]] && continue
+
+            local keep=false
+            for lang in "${langs[@]}"; do
+                if [[ "$lang" == "$dir_name" ]]; then
+                    keep=true
+                    break
+                fi
+            done
+
+            if ! $keep; then
+                if $DRY_RUN; then
+                    info "Would remove unselected: $CLAUDE_DIR/rules/$dir_name/"
+                else
+                    rm -rf "$existing_dir"
+                    ok "Removed unselected rules: $dir_name"
+                fi
+            fi
+        done
+    fi
 
     if $DRY_RUN; then
         info "Would copy: rules/README.md -> $CLAUDE_DIR/rules/README.md"
@@ -603,30 +864,47 @@ install_mcp() {
         fi
         warn "Replace YOUR_APP_ID and YOUR_APP_SECRET with your Feishu credentials"
     fi
-
 }
 
 install_plugins() {
-    info "Installing plugins (group: $PLUGIN_GROUP)..."
-
     if ! command -v claude &>/dev/null; then
         error "Claude Code CLI not found. Install it first: https://claude.com/claude-code"
         return 1
     fi
 
-    # Determine which plugins to install
+    # Collect plugins from all selected groups
     local plugins=()
-    case "$PLUGIN_GROUP" in
-        core)
-            plugins=("${PLUGINS_CORE[@]}")
-            ;;
-        ai-research)
-            plugins=("${PLUGINS_AI_RESEARCH[@]}")
-            ;;
-        all)
-            plugins=("${PLUGINS_CORE[@]}" "${PLUGINS_AI_RESEARCH[@]}")
-            ;;
-    esac
+    for group in "${PLUGIN_GROUPS[@]}"; do
+        case "$group" in
+            essential|core)
+                plugins+=("${PLUGINS_ESSENTIAL[@]}")
+                ;;
+            claude-mem)
+                plugins+=("${PLUGINS_CLAUDE_MEM[@]}")
+                ;;
+            ai-research)
+                plugins+=("${PLUGINS_AI_RESEARCH[@]}")
+                ;;
+            all)
+                plugins+=("${PLUGINS_ESSENTIAL[@]}" "${PLUGINS_CLAUDE_MEM[@]}" "${PLUGINS_AI_RESEARCH[@]}")
+                ;;
+        esac
+    done
+
+    # Deduplicate
+    local unique_plugins=()
+    local seen=""
+    for entry in "${plugins[@]}"; do
+        if [[ "$seen" != *"|$entry|"* ]]; then
+            unique_plugins+=("$entry")
+            seen="$seen|$entry|"
+        fi
+    done
+    plugins=("${unique_plugins[@]}")
+
+    local group_names
+    group_names="$(IFS=','; echo "${PLUGIN_GROUPS[*]}")"
+    info "Installing plugins (groups: $group_names)..."
 
     # Collect required marketplaces from selected plugins
     local marketplace_list=(
@@ -761,7 +1039,7 @@ uninstall() {
                 ;;
             plugins)
                 if command -v claude &>/dev/null; then
-                    local all_plugins=("${PLUGINS_CORE[@]}" "${PLUGINS_AI_RESEARCH[@]}")
+                    local all_plugins=("${PLUGINS_ESSENTIAL[@]}" "${PLUGINS_CLAUDE_MEM[@]}" "${PLUGINS_AI_RESEARCH[@]}")
                     for entry in "${all_plugins[@]}"; do
                         local plugin_name="${entry%%@*}"
                         claude plugin uninstall "$entry" 2>/dev/null && \
@@ -811,6 +1089,34 @@ main() {
         exit 0
     fi
 
+    # Interactive mode: show menu first
+    if $INTERACTIVE; then
+        interactive_menu
+    fi
+
+    # --all mode: set all flags
+    if $INSTALL_ALL; then
+        INSTALL_CLAUDE_MD=true
+        INSTALL_SETTINGS=true
+        INSTALL_RULES=true
+        INSTALL_SKILLS=true
+        INSTALL_LESSONS=true
+        INSTALL_HOOKS=true
+        INSTALL_PLUGINS=true
+        # MCP is NOT included in --all; use --mcp explicitly
+        if [[ ${#PLUGIN_GROUPS[@]} -eq 0 ]]; then
+            PLUGIN_GROUPS=("core")
+        fi
+    fi
+
+    # Check if anything was selected
+    if ! $INSTALL_CLAUDE_MD && ! $INSTALL_SETTINGS && ! $INSTALL_RULES && \
+       ! $INSTALL_SKILLS && ! $INSTALL_LESSONS && ! $INSTALL_HOOKS && \
+       ! $INSTALL_PLUGINS && ! $INSTALL_MCP; then
+        warn "Nothing selected to install."
+        exit 0
+    fi
+
     echo ""
     echo "========================================="
     echo "  Awesome Claude Code Config Installer"
@@ -831,25 +1137,14 @@ main() {
 
     mkdir -p "$CLAUDE_DIR"
 
-    if $INSTALL_ALL; then
-        install_claude_md
-        install_settings
-        install_rules
-        install_skills
-        install_lessons
-        install_hooks
-        # MCP is NOT included in --all; use --mcp explicitly
-        install_plugins
-    else
-        $INSTALL_CLAUDE_MD && install_claude_md
-        $INSTALL_SETTINGS && install_settings
-        $INSTALL_RULES && install_rules
-        $INSTALL_SKILLS && install_skills
-        $INSTALL_LESSONS && install_lessons
-        $INSTALL_HOOKS && install_hooks
-        $INSTALL_MCP && install_mcp
-        $INSTALL_PLUGINS && install_plugins
-    fi
+    $INSTALL_CLAUDE_MD && install_claude_md
+    $INSTALL_SETTINGS && install_settings
+    $INSTALL_RULES && install_rules
+    $INSTALL_SKILLS && install_skills
+    $INSTALL_LESSONS && install_lessons
+    $INSTALL_HOOKS && install_hooks
+    $INSTALL_MCP && install_mcp
+    $INSTALL_PLUGINS && install_plugins
 
     # Stamp version (skip if there were critical warnings)
     if ! $DRY_RUN; then
@@ -869,7 +1164,7 @@ main() {
     echo ""
     info "Next steps:"
     echo "  1. Restart Claude Code for changes to take effect"
-    if $INSTALL_MCP || { $INSTALL_ALL && false; }; then
+    if $INSTALL_MCP; then
         echo "  2. Replace YOUR_APP_ID/YOUR_APP_SECRET in Lark MCP config"
     fi
     echo "  3. Customize CLAUDE.md for your specific projects"

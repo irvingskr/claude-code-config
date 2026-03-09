@@ -32,7 +32,7 @@ Production-ready configuration for [Claude Code](https://claude.com/claude-code)
 **One-line remote install** (no clone needed):
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.sh) --all
 ```
 
 **Local install** (from clone):
@@ -40,7 +40,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/awesome-claude-code
 ```bash
 git clone https://github.com/Mizoreww/awesome-claude-code-config.git
 cd awesome-claude-code-config
-./install.sh              # Install everything
+./install.sh              # Interactive selector
+./install.sh --all        # Install everything (non-interactive)
 ```
 
 ### Windows
@@ -65,25 +66,55 @@ cd awesome-claude-code-config
 .\install.ps1             # Install everything
 ```
 
-### Default Installation (`--all`)
+### Interactive Installer
 
-| Component | Included | Flag to install separately |
-|-----------|----------|---------------------------|
-| CLAUDE.md | Yes | `--claude-md` |
-| settings.json | Yes (smart merge) | `--settings` |
-| Rules (all languages) | Yes | `--rules [LANG...]` |
-| Skills | Yes | `--skills` |
-| lessons.md | Yes (skip if exists) | `--lessons` |
-| Plugins (core, 14) | Yes | `--plugins` |
-| Plugins (ai-research, 6) | No | `--plugins ai-research` |
-| MCP (Lark) | No | `--mcp` |
+Running `./install.sh` with no arguments launches an interactive menu where you choose exactly what to install. Language rules and heavy plugins are **off by default** to keep context lean:
 
-### Selective Install
+```
+  ↑↓ move  Enter select  a=all n=none d=defaults q=quit
+
+  Core
+  > [x] CLAUDE.md              Global instructions template
+    [x] settings.json          Smart-merged Claude Code settings
+    [x] Common rules           Coding style, git, security, testing
+    [x] Hooks                  StatusLine display hook
+    [x] Lessons template       Cross-session learning framework
+    [x] Custom skills          adversarial-review, paper-reading
+
+  Language Rules  (only install what your projects need)
+    [ ] Python                 PEP 8, pytest, type hints, bandit
+    [ ] TypeScript             Zod, Playwright, immutability
+    [ ] Go                     gofmt, table-driven tests, gosec
+
+  Plugins
+    [x] Plugins (13)           superpowers, code-review, playwright, feature-dev...
+    [ ] claude-mem             Cross-session memory (~3k tokens/session)
+    [ ] AI Research plugins    fine-tuning, inference, optimization...
+
+  MCP Servers
+    [ ] Lark                   Feishu/Lark integration
+
+     [ Submit ]
+```
+
+Use ↑↓ to navigate, Enter to toggle, navigate to Submit and press Enter to install.
+
+### Plugin Groups
+
+| Group | Plugins | Default | Context Cost |
+|-------|---------|---------|--------------|
+| Essential (13) | everything-claude-code, superpowers, code-review, context7, commit-commands, document-skills, playwright, feature-dev, code-simplifier, ralph-loop, frontend-design, example-skills, github | On | Low |
+| claude-mem (1) | claude-mem | Off | **~3k tokens/session** (observation index + session summary) |
+| AI Research (6) | tokenization, fine-tuning, post-training, inference-serving, distributed-training, optimization | Off | Low |
+
+### CLI Flags
 
 ```bash
 # Bash (macOS / Linux)
-./install.sh --rules python typescript  # Rules only
-./install.sh --plugins                  # Core plugins only (14)
+./install.sh --all                      # Install everything (non-interactive)
+./install.sh --rules python typescript  # Common + specific language rules
+./install.sh --plugins essential        # Essential plugins (13)
+./install.sh --plugins claude-mem       # claude-mem only
 ./install.sh --plugins all              # All plugins (20)
 ./install.sh --plugins ai-research      # AI research plugins only (6)
 ./install.sh --mcp                      # MCP (Lark)

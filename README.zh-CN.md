@@ -32,7 +32,7 @@
 **一行远程安装**（无需 clone）：
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/awesome-claude-code-config/main/install.sh) --all
 ```
 
 **本地安装**（从 clone）：
@@ -40,7 +40,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Mizoreww/awesome-claude-code
 ```bash
 git clone https://github.com/Mizoreww/awesome-claude-code-config.git
 cd awesome-claude-code-config
-./install.sh              # 安装全部
+./install.sh              # 交互式选择器
+./install.sh --all        # 安装全部（非交互）
 ```
 
 ### Windows
@@ -65,25 +66,55 @@ cd awesome-claude-code-config
 .\install.ps1             # 安装全部
 ```
 
-### 默认安装（`--all`）
+### 交互式安装
 
-| 组件 | 是否包含 | 单独安装 |
-|------|----------|----------|
-| CLAUDE.md | 是 | `--claude-md` |
-| settings.json | 是（智能合并） | `--settings` |
-| Rules（所有语言） | 是 | `--rules [LANG...]` |
-| Skills | 是 | `--skills` |
-| lessons.md | 是（已存在则跳过） | `--lessons` |
-| Plugins（core，14 个） | 是 | `--plugins` |
-| Plugins（ai-research，6 个） | 否 | `--plugins ai-research` |
-| MCP（Lark） | 否 | `--mcp` |
+直接运行 `./install.sh`（不带参数）会启动交互式菜单，自由选择要安装的组件。语言规则和重型插件**默认关闭**，减少上下文占用：
 
-### 选择性安装
+```
+  ↑↓ move  Enter select  a=all n=none d=defaults q=quit
+
+  Core
+  > [x] CLAUDE.md              全局指令模板
+    [x] settings.json          智能合并 Claude Code 设置
+    [x] Common rules           编码规范、git、安全、测试
+    [x] Hooks                  StatusLine 状态栏
+    [x] Lessons template       跨 session 学习框架
+    [x] Custom skills          adversarial-review, paper-reading
+
+  Language Rules（按需选择）
+    [ ] Python                 PEP 8, pytest, type hints, bandit
+    [ ] TypeScript             Zod, Playwright, immutability
+    [ ] Go                     gofmt, 表驱动测试, gosec
+
+  Plugins
+    [x] Plugins (13)           superpowers, code-review, playwright, feature-dev...
+    [ ] claude-mem             跨 session 记忆（~3k tokens/session）
+    [ ] AI Research plugins    fine-tuning, inference, optimization...
+
+  MCP Servers
+    [ ] Lark                   飞书/Lark 集成
+
+     [ Submit ]
+```
+
+使用 ↑↓ 导航，Enter 切换选项，移到 Submit 按 Enter 开始安装。
+
+### 插件分组
+
+| 分组 | 包含插件 | 默认 | Context 开销 |
+|------|----------|------|-------------|
+| Essential（13 个） | everything-claude-code, superpowers, code-review, context7, commit-commands, document-skills, playwright, feature-dev, code-simplifier, ralph-loop, frontend-design, example-skills, github | 开启 | 低 |
+| claude-mem（1 个） | claude-mem | 关闭 | **~3k tokens/session**（观测索引 + session 摘要） |
+| AI Research（6 个） | tokenization, fine-tuning, post-training, inference-serving, distributed-training, optimization | 关闭 | 低 |
+
+### CLI 参数
 
 ```bash
 # Bash（macOS / Linux）
-./install.sh --rules python typescript  # 仅规则
-./install.sh --plugins                  # 仅核心插件（14 个）
+./install.sh --all                      # 安装全部（非交互）
+./install.sh --rules python typescript  # Common + 指定语言规则
+./install.sh --plugins essential        # Essential 插件（13 个）
+./install.sh --plugins claude-mem       # 仅 claude-mem
 ./install.sh --plugins all              # 全部插件（20 个）
 ./install.sh --plugins ai-research      # 仅 AI 研究类插件（6 个）
 ./install.sh --mcp                      # MCP（Lark）
