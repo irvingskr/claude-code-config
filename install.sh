@@ -556,9 +556,6 @@ uninstall() {
         for skill in "${MANAGED_SKILLS[@]}"; do
           rm -rf "$CODEX_DIR/skills/$skill"
         done
-        for skill in "${LEGACY_SUPERPOWERS_SKILLS[@]}"; do
-          rm -rf "$CODEX_DIR/skills/$skill"
-        done
         rm -f "$SUPERPOWERS_LINK"
         rm -rf "$SUPERPOWERS_DIR"
         ok "Removed managed skills"
