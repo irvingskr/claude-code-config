@@ -308,7 +308,7 @@ INSTALL_WARNINGS=0
 INSTALL_RULES=false
 INSTALL_SKILLS=false
 INSTALL_LESSONS=false
-INSTALL_HOOKS=false
+INSTALL_STATUSLINE=false
 INSTALL_MCP=false
 INSTALL_PLUGINS=false
 INSTALL_CLAUDE_MD=false
@@ -443,8 +443,8 @@ interactive_menu() {
         "CLAUDE.md|Global instructions template|1|claude-md"
         "settings.json|Smart-merged Claude Code settings|1|settings"
         "Common rules|Coding style, git, security, testing|1|rules-common"
-        "Hooks|StatusLine display hook|1|hooks"
-        "Lessons template|Cross-session learning framework|1|lessons"
+        "StatusLine|Gradient progress bar & usage display|1|statusline"
+        "Lessons|lessons.md template + SessionStart hook|1|lessons"
         "Custom skills|adversarial-review, paper-reading, humanizer|1|skills"
         "Python rules|PEP 8, pytest, type hints, bandit|0|rules-python"
         "TypeScript rules|Zod, Playwright, immutability|0|rules-ts"
@@ -647,7 +647,7 @@ interactive_menu() {
             claude-md)           INSTALL_CLAUDE_MD=true ;;
             settings)            INSTALL_SETTINGS=true ;;
             rules-common)        INSTALL_RULES=true ;;
-            hooks)               INSTALL_HOOKS=true ;;
+            statusline)          INSTALL_STATUSLINE=true ;;
             lessons)             INSTALL_LESSONS=true ;;
             skills)              INSTALL_SKILLS=true ;;
             rules-python)        INSTALL_RULES=true; RULE_LANGS+=("python") ;;
@@ -659,6 +659,12 @@ interactive_menu() {
             mcp)                 INSTALL_MCP=true ;;
         esac
     done
+
+    # Auto-enable settings.json when StatusLine or Lessons needs it for config
+    if ($INSTALL_STATUSLINE || $INSTALL_LESSONS) && ! $INSTALL_SETTINGS; then
+        INSTALL_SETTINGS=true
+        info "settings.json auto-enabled (required by StatusLine/Lessons)"
+    fi
 }
 
 # --- Confirm prompt (respects --force) ----------------------------------
@@ -698,11 +704,27 @@ install_claude_md() {
 install_settings() {
     info "Installing settings.json..."
     if [[ ! -f "$CLAUDE_DIR/settings.json" ]]; then
-        # New file: just copy
+        # New file: copy with optional field stripping
         if $DRY_RUN; then
             info "Would copy: settings.json -> $CLAUDE_DIR/settings.json"
+            $INSTALL_STATUSLINE || info "  - statusLine: skipped (not selected)"
+            $INSTALL_LESSONS    || info "  - hooks.SessionStart: skipped (not selected)"
         else
-            cp "$SCRIPT_DIR/settings.json" "$CLAUDE_DIR/settings.json"
+            if ! $INSTALL_STATUSLINE || ! $INSTALL_LESSONS; then
+                install_jq || true
+                if command -v jq &>/dev/null; then
+                    local filter="."
+                    $INSTALL_STATUSLINE || filter="$filter | del(.statusLine)"
+                    $INSTALL_LESSONS    || filter="$filter | del(.hooks.SessionStart)"
+                    jq "$filter" "$SCRIPT_DIR/settings.json" > "$CLAUDE_DIR/settings.json"
+                else
+                    cp "$SCRIPT_DIR/settings.json" "$CLAUDE_DIR/settings.json"
+                    warn "jq not available — settings.json includes all fields (statusLine/SessionStart)"
+                    (( INSTALL_WARNINGS++ )) || true
+                fi
+            else
+                cp "$SCRIPT_DIR/settings.json" "$CLAUDE_DIR/settings.json"
+            fi
             ok "settings.json installed (new)"
         fi
         return
@@ -724,8 +746,16 @@ install_settings() {
         info "  - env: incoming as defaults, existing overrides"
         info "  - permissions.allow: union of arrays"
         info "  - enabledPlugins: merged, existing keys take priority"
-        info "  - hooks.SessionStart: deduplicated by matcher"
-        info "  - statusLine: incoming takes priority"
+        if $INSTALL_LESSONS; then
+            info "  - hooks.SessionStart: deduplicated by matcher"
+        else
+            info "  - hooks.SessionStart: skipped (not selected)"
+        fi
+        if $INSTALL_STATUSLINE; then
+            info "  - statusLine: incoming takes priority"
+        else
+            info "  - statusLine: skipped (not selected)"
+        fi
         return
     fi
 
@@ -734,7 +764,11 @@ install_settings() {
     local merged
     merged="$(mktemp)"
 
-    jq -s '
+    local inc_sl=false inc_lh=false
+    $INSTALL_STATUSLINE && inc_sl=true
+    $INSTALL_LESSONS && inc_lh=true
+
+    jq -s --argjson inc_sl "$inc_sl" --argjson inc_lh "$inc_lh" '
     def unique_array: [.[] | tostring] | unique | [.[] | fromjson? // .];
 
     # $base = incoming (defaults), $over = existing (user overrides)
@@ -749,21 +783,30 @@ install_settings() {
     # enabledPlugins: merge, existing wins
     (($base.enabledPlugins // {}) * ($over.enabledPlugins // {})) as $plugins |
 
-    # hooks.SessionStart: deduplicate by matcher
-    (
+    # hooks.SessionStart: deduplicate by matcher (only merge incoming if lessons selected)
+    (if $inc_lh then
       (($base.hooks.SessionStart // []) + ($over.hooks.SessionStart // []))
       | group_by(.matcher)
       | map(last)
-    ) as $session_hooks |
+    else
+      ($over.hooks.SessionStart // [])
+    end) as $session_hooks |
+
+    # statusLine: use incoming if selected, otherwise preserve existing
+    (if $inc_sl then ($base.statusLine // null)
+     else ($over.statusLine // null)
+    end) as $status_line |
 
     # Build merged object: start with incoming, overlay existing, then set merged fields
     ($base * $over) * {
       env: $env,
       enabledPlugins: $plugins,
-      statusLine: ($base.statusLine // null),
+      statusLine: $status_line,
       permissions: (($base.permissions // {}) * ($over.permissions // {}) + {allow: $allow}),
       hooks: (($base.hooks // {}) * ($over.hooks // {}) + {SessionStart: $session_hooks})
     }
+    # Remove null statusLine (when neither side had one)
+    | if .statusLine == null then del(.statusLine) else . end
     ' "$incoming" "$existing" > "$merged"
 
     if jq empty "$merged" 2>/dev/null; then
@@ -885,22 +928,20 @@ install_lessons() {
     fi
 }
 
-install_hooks() {
-    info "Installing hooks..."
+install_statusline() {
+    info "Installing StatusLine..."
     mkdir -p "$CLAUDE_DIR/hooks"
 
-    for hook_file in "$SCRIPT_DIR"/hooks/*; do
-        [[ -f "$hook_file" ]] || continue
-        local fname
-        fname=$(basename "$hook_file")
+    local hook_file="$SCRIPT_DIR/hooks/statusline.sh"
+    if [[ -f "$hook_file" ]]; then
         if $DRY_RUN; then
-            info "Would copy: hooks/$fname -> $CLAUDE_DIR/hooks/$fname"
+            info "Would copy: hooks/statusline.sh -> $CLAUDE_DIR/hooks/statusline.sh"
         else
-            cp "$hook_file" "$CLAUDE_DIR/hooks/$fname"
-            chmod +x "$CLAUDE_DIR/hooks/$fname"
-            ok "Hook installed: $fname"
+            cp "$hook_file" "$CLAUDE_DIR/hooks/statusline.sh"
+            chmod +x "$CLAUDE_DIR/hooks/statusline.sh"
+            ok "Hook installed: statusline.sh"
         fi
-    done
+    fi
 
     # Ensure jq is available (required by statusline hook)
     install_jq || true
@@ -1145,7 +1186,7 @@ main() {
         INSTALL_RULES=true
         INSTALL_SKILLS=true
         INSTALL_LESSONS=true
-        INSTALL_HOOKS=true
+        INSTALL_STATUSLINE=true
         INSTALL_PLUGINS=true
         if $EXPLICIT_ALL; then
             # Explicit --all: install everything including MCP and all plugin groups
@@ -1159,7 +1200,7 @@ main() {
 
     # Check if anything was selected
     if ! $INSTALL_CLAUDE_MD && ! $INSTALL_SETTINGS && ! $INSTALL_RULES && \
-       ! $INSTALL_SKILLS && ! $INSTALL_LESSONS && ! $INSTALL_HOOKS && \
+       ! $INSTALL_SKILLS && ! $INSTALL_LESSONS && ! $INSTALL_STATUSLINE && \
        ! $INSTALL_PLUGINS && ! $INSTALL_MCP; then
         warn "Nothing selected to install."
         exit 0
@@ -1190,7 +1231,7 @@ main() {
     $INSTALL_RULES && install_rules
     $INSTALL_SKILLS && install_skills
     $INSTALL_LESSONS && install_lessons
-    $INSTALL_HOOKS && install_hooks
+    $INSTALL_STATUSLINE && install_statusline
     $INSTALL_MCP && install_mcp
     $INSTALL_PLUGINS && install_plugins
 

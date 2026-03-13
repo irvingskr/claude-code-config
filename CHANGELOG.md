@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.8.2] - 2026-03-13
+
+### Features
+- **StatusLine and Lessons are now independent menu options**: The former "Hooks" item has been split into "StatusLine" (gradient progress bar & usage display) and "Lessons" (lessons.md template + SessionStart auto-load hook). Users can now install either without the other.
+- **Conditional settings.json merge**: `statusLine` and `hooks.SessionStart` fields are only merged/included when their corresponding menu option is selected
+- **Auto-enable settings.json**: Selecting StatusLine or Lessons without settings.json will auto-enable settings.json (required for config)
+- **jq-unavailable warning**: Fresh installs without jq now warn when unselected fields cannot be stripped from settings.json
+
+### Design Rationale
+- Addresses issue #12: users who don't want the statusline can now deselect it independently
+- The old "Hooks" item bundled two unrelated concerns — statusline display and lessons auto-loading — that have different use cases
+- `install_statusline()` now only copies `statusline.sh` (not all files in hooks/), preventing future hook files from being bundled incorrectly
+
+### Notes & Caveats
+- Existing users who re-run the installer with StatusLine/Lessons unchecked will keep their existing config (safe upgrade — the installer never removes previously installed settings)
+- On systems without jq, fresh installs with partial selections will copy the full settings.json template and warn about included extra fields
+
 ## [1.8.0] - 2026-03-11
 
 ### Features
