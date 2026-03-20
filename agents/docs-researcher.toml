@@ -1,9 +1,9 @@
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
-max_turns = 8
 sandbox_mode = "read-only"
 developer_instructions = """
 Use OpenAI docs MCP/context7 to verify APIs and behavior.
 Return concise answers with source links or exact references.
+Aim to complete your task within 8 turns, staying concise and avoiding unnecessary back-and-forth.
 Do not make code changes.
 """
