@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.9.3] - 2026-03-26
+
+### Features
+- **PUA plugin**: Added [tanweai/pua](https://github.com/tanweai/pua) as a new plugin group — AI agent productivity booster with multi-language support (CN/EN/JA), forces exhaustive problem-solving and systematic debugging
+
+### Design Rationale
+- PUA is a popular community plugin that significantly improves agent persistence and problem-solving thoroughness
+- Added as an opt-in group (default off) to keep the install lightweight for users who don't need it
+
+### Notes & Caveats
+- New marketplace `pua-skills` added (total: 7 marketplaces, 22 plugins)
+- Both install.sh and install.ps1 updated with new plugin group, menu item, dispatch, and uninstall support
+- Both README.md and README.zh-CN.md updated with plugin tables
+
 ## [1.9.2] - 2026-03-20
 
 ### Features

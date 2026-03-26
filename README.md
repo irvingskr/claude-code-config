@@ -6,7 +6,7 @@
 
 ![Statusline](assets/statusline.png)
 
-Production-ready configuration for [Claude Code](https://claude.com/claude-code) — one-command install of global instructions, multi-language coding rules (Python / TypeScript / Go), 20 curated plugins, custom skills (paper-reading, [adversarial-review](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review), [humanizer](https://github.com/blader/humanizer), update_config), custom status bar, MCP integration, and a self-improvement loop that remembers corrections across sessions.
+Production-ready configuration for [Claude Code](https://claude.com/claude-code) — one-command install of global instructions, multi-language coding rules (Python / TypeScript / Go), 22 curated plugins, custom skills (paper-reading, [adversarial-review](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review), [humanizer](https://github.com/blader/humanizer), update_config), custom status bar, MCP integration, and a self-improvement loop that remembers corrections across sessions.
 
 ## Showcase
 
@@ -26,7 +26,7 @@ Production-ready configuration for [Claude Code](https://claude.com/claude-code)
 ├── rules/                 # Multi-language coding standards (common + python/typescript/golang)
 ├── hooks/                 # Statusline with gradient progress bars (context + 5h usage)
 ├── mcp/                   # MCP server config (Lark-MCP)
-├── plugins/               # Plugin installation guide (20 plugins, 5 marketplaces)
+├── plugins/               # Plugin installation guide (22 plugins, 7 marketplaces)
 ├── skills/                # Custom skills (paper-reading, adversarial-review, humanizer, update_config)
 ├── docs/                  # Research paper summaries
 ├── images/                # Showcase screenshots
@@ -96,23 +96,24 @@ Running `./install.sh` with no arguments launches an interactive menu where you 
   > [*] CLAUDE.md                Global instructions template
     [*] settings.json            Smart-merged Claude Code settings
     [*] Common rules             Coding style, git, security, testing
-    [*] Hooks                    StatusLine display hook
-    [*] Lessons template         Cross-session learning framework
-    [*] Custom skills            adversarial-review, paper-reading, humanizer, update_config
+    [*] StatusLine               Gradient progress bar & usage display
+    [*] Lessons                  lessons.md template + SessionStart hook
+    [*] Custom skills            adversarial-review, paper-reading, humanizer
 
   Language Rules  (only install what your projects need)
-    [ ] Python                   PEP 8, pytest, type hints, bandit
-    [ ] TypeScript               Zod, Playwright, immutability
-    [ ] Go                       gofmt, table-driven tests, gosec
+    [ ] Python rules             PEP 8, pytest, type hints, bandit
+    [ ] TypeScript rules         Zod, Playwright, immutability
+    [ ] Go rules                 gofmt, table-driven tests, gosec
 
   Plugins
     [*] Plugins (13)             superpowers, code-review, playwright, feature-dev...
     [ ] claude-mem               Cross-session memory (~3k tokens/session)
     [ ] AI Research plugins      fine-tuning, inference, optimization...
     [ ] claude-health            Health check & wellness dashboard
+    [ ] PUA                      AI agent productivity booster (pua, pua-en, pua-ja)
 
   MCP Servers
-    [ ] Lark                     Feishu/Lark integration
+    [ ] Lark MCP server          Feishu/Lark integration
 
   >  [ Submit ]
 ```
@@ -127,6 +128,7 @@ Use ↑↓ to navigate, Enter to toggle, navigate to Submit and press Enter to i
 | claude-mem (1) | claude-mem | Off | **~3k tokens/session** (observation index + session summary) |
 | AI Research (6) | tokenization, fine-tuning, post-training, inference-serving, distributed-training, optimization | Off | Low |
 | claude-health (1) | health | Off | Low |
+| PUA (1) | pua | Off | Low |
 
 ### CLI Flags
 
@@ -229,7 +231,7 @@ golang/       → gofmt, table-driven tests, gosec
 
 ### Plugin-First Approach
 
-21 plugins across 6 marketplaces, organized into groups:
+22 plugins across 7 marketplaces, organized into groups:
 
 **Core plugins** (14) — installed by default:
 
@@ -266,6 +268,12 @@ golang/       → gofmt, table-driven tests, gosec
 | Plugin | Marketplace | What It Does |
 |--------|-------------|--------------|
 | [**health**](https://github.com/tw93/claude-health) | claude-health | Health check and wellness dashboard for Claude Code sessions |
+
+**PUA plugin** (1) — select in the interactive menu or included with `--all`:
+
+| Plugin | Marketplace | What It Does |
+|--------|-------------|--------------|
+| [**pua**](https://github.com/tanweai/pua) | pua-skills | AI agent productivity booster — forces exhaustive problem-solving with multi-language support (CN/EN/JA) |
 
 See [`plugins/README.md`](plugins/README.md) for installation details.
 

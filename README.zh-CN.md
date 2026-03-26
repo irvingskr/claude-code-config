@@ -6,7 +6,7 @@
 
 ![Statusline](assets/statusline.png)
 
-[Claude Code](https://claude.com/claude-code) 的生产级配置——一键安装全局指令、多语言编码规则（Python / TypeScript / Go）、20 个精选插件、自定义技能（paper-reading、[adversarial-review](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review)、[humanizer](https://github.com/blader/humanizer)、update_config）、自定义状态栏、MCP 集成，以及跨 session 自动记忆纠正的自我改进循环。
+[Claude Code](https://claude.com/claude-code) 的生产级配置——一键安装全局指令、多语言编码规则（Python / TypeScript / Go）、22 个精选插件、自定义技能（paper-reading、[adversarial-review](https://github.com/poteto/noodle/tree/main/.agents/skills/adversarial-review)、[humanizer](https://github.com/blader/humanizer)、update_config）、自定义状态栏、MCP 集成，以及跨 session 自动记忆纠正的自我改进循环。
 
 ## 展示
 
@@ -26,7 +26,7 @@
 ├── rules/                 # 多语言编码标准（common + python/typescript/golang）
 ├── hooks/                 # 状态栏：渐变进度条（context + 5h 用量）
 ├── mcp/                   # MCP 服务器配置（Lark-MCP）
-├── plugins/               # 插件安装指南（20 个插件，5 个市场）
+├── plugins/               # 插件安装指南（22 个插件，7 个市场）
 ├── skills/                # 自定义技能（paper-reading、adversarial-review、humanizer、update_config）
 ├── docs/                  # 论文阅读总结
 ├── images/                # 展示截图
@@ -96,23 +96,24 @@ cd awesome-claude-code-config
   > [*] CLAUDE.md                全局指令模板
     [*] settings.json            智能合并 Claude Code 设置
     [*] Common rules             编码规范、git、安全、测试
-    [*] Hooks                    StatusLine 状态栏
-    [*] Lessons template         跨 session 学习框架
-    [*] Custom skills            adversarial-review, paper-reading, humanizer, update_config
+    [*] StatusLine               渐变进度条 & 用量显示
+    [*] Lessons                  lessons.md 模板 + SessionStart hook
+    [*] Custom skills            adversarial-review, paper-reading, humanizer
 
   Language Rules（按需选择）
-    [ ] Python                   PEP 8, pytest, type hints, bandit
-    [ ] TypeScript               Zod, Playwright, immutability
-    [ ] Go                       gofmt, 表驱动测试, gosec
+    [ ] Python rules             PEP 8, pytest, type hints, bandit
+    [ ] TypeScript rules         Zod, Playwright, immutability
+    [ ] Go rules                 gofmt, 表驱动测试, gosec
 
   Plugins
     [*] Plugins (13)             superpowers, code-review, playwright, feature-dev...
     [ ] claude-mem               跨 session 记忆（~3k tokens/session）
     [ ] AI Research plugins      fine-tuning, inference, optimization...
     [ ] claude-health            健康检查 & 状态面板
+    [ ] PUA                      AI Agent 生产力倍增器（pua, pua-en, pua-ja）
 
   MCP Servers
-    [ ] Lark                     飞书/Lark 集成
+    [ ] Lark MCP server          飞书/Lark 集成
 
   >  [ Submit ]
 ```
@@ -127,6 +128,7 @@ cd awesome-claude-code-config
 | claude-mem（1 个） | claude-mem | 关闭 | **~3k tokens/session**（观测索引 + session 摘要） |
 | AI Research（6 个） | tokenization, fine-tuning, post-training, inference-serving, distributed-training, optimization | 关闭 | 低 |
 | claude-health（1 个） | health | 关闭 | 低 |
+| PUA（1 个） | pua | 关闭 | 低 |
 
 ### CLI 参数
 
@@ -229,7 +231,7 @@ golang/       → gofmt、表驱动测试、gosec
 
 ### 插件优先
 
-21 个插件，6 个市场，分为多组：
+22 个插件，7 个市场，分为多组：
 
 **核心插件**（14 个）— 默认安装：
 
@@ -266,6 +268,12 @@ golang/       → gofmt、表驱动测试、gosec
 | 插件 | 市场 | 功能 |
 |------|------|------|
 | [**health**](https://github.com/tw93/claude-health) | claude-health | Claude Code 会话健康检查和状态面板 |
+
+**PUA 插件**（1 个）— 在交互式菜单中选择，或通过 `--all` 安装：
+
+| 插件 | 市场 | 功能 |
+|------|------|------|
+| [**pua**](https://github.com/tanweai/pua) | pua-skills | AI Agent 生产力倍增器 — 强制穷举式问题解决，支持中/英/日多语言 |
 
 详见 [`plugins/README.md`](plugins/README.md) 了解安装方式。
 

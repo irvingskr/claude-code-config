@@ -345,6 +345,10 @@ PLUGINS_HEALTH=(
     "health@claude-health"
 )
 
+PLUGINS_PUA=(
+    "pua@pua-skills"
+)
+
 # --- Terminal detection (single source of truth) -----------------------
 
 # Can we interact with a human? Returns 0 if stdout is a tty AND we can
@@ -446,6 +450,7 @@ interactive_menu() {
         "claude-mem|Cross-session memory (~3k tokens/session)|0|plugins-claude-mem"
         "AI Research plugins|fine-tuning, inference, optimization...|0|plugins-ai-research"
         "claude-health|Health check & wellness dashboard|0|plugins-health"
+        "PUA|AI agent productivity booster (pua, pua-en, pua-ja)|0|plugins-pua"
         "Lark MCP server|Feishu/Lark integration|0|mcp"
     )
 
@@ -465,8 +470,8 @@ interactive_menu() {
     local groups=(
         "0|5|Core|"
         "6|8|Language Rules|only install what your projects need"
-        "9|11|Plugins|"
-        "12|12|MCP Servers|"
+        "9|13|Plugins|"
+        "14|14|MCP Servers|"
     )
 
     # Save terminal state (operate on fd 3 which points to the actual tty)
@@ -651,6 +656,7 @@ interactive_menu() {
             plugins-claude-mem)  INSTALL_PLUGINS=true; PLUGIN_GROUPS+=("claude-mem") ;;
             plugins-ai-research) INSTALL_PLUGINS=true; PLUGIN_GROUPS+=("ai-research") ;;
             plugins-health)      INSTALL_PLUGINS=true; PLUGIN_GROUPS+=("health") ;;
+            plugins-pua)         INSTALL_PLUGINS=true; PLUGIN_GROUPS+=("pua") ;;
             mcp)                 INSTALL_MCP=true ;;
         esac
     done
@@ -989,8 +995,11 @@ install_plugins() {
             health)
                 plugins+=("${PLUGINS_HEALTH[@]}")
                 ;;
+            pua)
+                plugins+=("${PLUGINS_PUA[@]}")
+                ;;
             all)
-                plugins+=("${PLUGINS_ESSENTIAL[@]}" "${PLUGINS_CLAUDE_MEM[@]}" "${PLUGINS_AI_RESEARCH[@]}" "${PLUGINS_HEALTH[@]}")
+                plugins+=("${PLUGINS_ESSENTIAL[@]}" "${PLUGINS_CLAUDE_MEM[@]}" "${PLUGINS_AI_RESEARCH[@]}" "${PLUGINS_HEALTH[@]}" "${PLUGINS_PUA[@]}")
                 ;;
         esac
     done
@@ -1018,6 +1027,7 @@ install_plugins() {
         "claude-plugins-official|anthropics/claude-plugins-official"
         "thedotmack|thedotmack/claude-mem"
         "claude-health|tw93/claude-health"
+        "pua-skills|tanweai/pua"
     )
 
     # Build set of needed marketplaces (bash 3.2 compatible, no associative arrays)
@@ -1132,7 +1142,7 @@ uninstall() {
     fi
 
     if command -v claude &>/dev/null; then
-        local all_plugins=("${PLUGINS_ESSENTIAL[@]}" "${PLUGINS_CLAUDE_MEM[@]}" "${PLUGINS_AI_RESEARCH[@]}" "${PLUGINS_HEALTH[@]}")
+        local all_plugins=("${PLUGINS_ESSENTIAL[@]}" "${PLUGINS_CLAUDE_MEM[@]}" "${PLUGINS_AI_RESEARCH[@]}" "${PLUGINS_HEALTH[@]}" "${PLUGINS_PUA[@]}")
         for entry in "${all_plugins[@]}"; do
             local plugin_name="${entry%%@*}"
             claude plugin uninstall "$entry" 2>/dev/null && \
