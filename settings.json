@@ -55,7 +55,7 @@
   },
   "skipDangerousModePermissionPrompt": true,
   "permissions": {
-    "defaultMode": "bypassPermissions",
+    "defaultMode": "auto",
     "allow": [
       "Bash(*)",
       "Read(*)",

@@ -702,8 +702,30 @@ install_claude_md() {
     fi
 }
 
+_supports_auto_mode() {
+    # Auto mode requires Claude Code >= 2.1.80 (shipped 2026-03-24)
+    local ver
+    ver=$(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1) || return 1
+    [[ -z "$ver" ]] && return 1
+    local major minor patch
+    IFS='.' read -r major minor patch <<< "$ver"
+    # 2.1.80+
+    (( major > 2 || (major == 2 && minor > 1) || (major == 2 && minor == 1 && patch >= 80) ))
+}
+
 install_settings() {
     info "Installing settings.json..."
+
+    # Auto mode detection: downgrade to bypassPermissions if Claude Code is too old
+    local USE_AUTO_MODE=true
+    if ! command -v claude &>/dev/null; then
+        USE_AUTO_MODE=false
+        info "Claude Code not found — defaulting to bypassPermissions (auto mode available after install)"
+    elif ! _supports_auto_mode; then
+        USE_AUTO_MODE=false
+        warn "Claude Code too old for auto mode (requires >= 2.1.80) — falling back to bypassPermissions"
+    fi
+
     if [[ ! -f "$CLAUDE_DIR/settings.json" ]]; then
         # New file: copy with optional field stripping
         if $DRY_RUN; then
@@ -725,6 +747,16 @@ install_settings() {
                 fi
             else
                 cp "$SCRIPT_DIR/settings.json" "$CLAUDE_DIR/settings.json"
+            fi
+            # Downgrade auto -> bypassPermissions if Claude Code too old
+            if ! $USE_AUTO_MODE && [[ -f "$CLAUDE_DIR/settings.json" ]]; then
+                if command -v jq &>/dev/null; then
+                    local tmp; tmp=$(jq '.permissions.defaultMode = "bypassPermissions"' "$CLAUDE_DIR/settings.json")
+                    echo "$tmp" > "$CLAUDE_DIR/settings.json"
+                else
+                    local sedtmp="$CLAUDE_DIR/settings.json.sedtmp"
+                    sed 's/"defaultMode": "auto"/"defaultMode": "bypassPermissions"/' "$CLAUDE_DIR/settings.json" > "$sedtmp" && mv "$sedtmp" "$CLAUDE_DIR/settings.json"
+                fi
             fi
             ok "settings.json installed (new)"
         fi
@@ -811,6 +843,10 @@ install_settings() {
     ' "$incoming" "$existing" > "$merged"
 
     if jq empty "$merged" 2>/dev/null; then
+        # Downgrade auto -> bypassPermissions if Claude Code too old
+        if ! $USE_AUTO_MODE; then
+            jq '.permissions.defaultMode = "bypassPermissions"' "$merged" > "${merged}.tmp" && mv "${merged}.tmp" "$merged"
+        fi
         mv "$merged" "$existing"
         ok "settings.json smart-merged"
     else

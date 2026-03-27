@@ -300,7 +300,7 @@ Requires Codex CLI installed and `OPENAI_API_KEY` set in your environment.
 
 ## Security Note
 
-`settings.json` ships with `bypassPermissions` mode for power users. If you prefer safer defaults, change `defaultMode` to `"default"` and set `skipDangerousModePermissionPrompt` to `false`.
+`settings.json` now ships with `auto` mode (requires Claude Code >= 2.1.80, [announced 2026-03-24](https://docs.anthropic.com/en/docs/claude-code)). Auto mode lets Claude approve safe actions autonomously while blocking risky ones — a safer alternative to `bypassPermissions`. The installer auto-detects your Claude Code version and falls back to `bypassPermissions` for older versions. To use a different mode, change `defaultMode` in `settings.json` to `"default"`, `"acceptEdits"`, or `"bypassPermissions"`.
 
 ## Customization
 

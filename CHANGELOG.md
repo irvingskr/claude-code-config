@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.0.0] - 2026-03-27
+
+### Features
+- **Auto mode default**: `settings.json` now ships with `defaultMode: "auto"` instead of `bypassPermissions`. Auto mode (announced 2026-03-24) lets Claude approve safe actions autonomously while blocking risky ones — a safer middle ground for power users. Installer auto-detects Claude Code version and falls back to `bypassPermissions` for versions < 2.1.80.
+
+### Design Rationale
+- Auto mode classifies each tool call for risk before execution; safe operations proceed, risky ones are blocked
+- Version detection in `install.sh` (`_supports_auto_mode`) ensures backward compatibility without user intervention
+- Distinguishes "Claude Code not installed" vs "version too old" in warning messages
+
+### Notes & Caveats
+- Auto mode requires Claude Sonnet 4.6 or Opus 4.6 model; not available on Haiku, claude-3 models, or third-party providers (Bedrock, Vertex, Foundry)
+- Auto mode is a research preview on Team plans; Enterprise and API support rolling out
+- `sed -i` fallback replaced with portable `sed > tmp && mv` for macOS compatibility
+
 ## [1.9.4] - 2026-03-27
 
 ### Features
@@ -7,15 +22,13 @@
 
 ### Design Rationale
 - ar5iv coverage is incomplete — many papers lack HTML versions, causing the screenshot flow to fail entirely
-- Old pymupdf manual bbox approach (Path B) was fragile: frequently captured surrounding text, required iterative manual clipping
 - pymupdf4llm wraps `get_images()` + `cluster_drawings()` + `get_pixmap(clip=...)` into a single call, handling both raster and vector figures automatically
-- Added graceful degradation: theoretical papers with no meaningful figures now produce text-only summaries instead of stalling on extraction
+- Added graceful degradation: theoretical papers with no meaningful figures produce text-only summaries
 
 ### Notes & Caveats
 - Requires `pymupdf4llm` package (auto-installs `pymupdf` as dependency)
 - OCR disabled by default (`use_ocr=False`) to avoid tesseract dependency
 - Template image placeholders changed from hardcoded `figure_X.png` to HTML comment guides
-- Net reduction of ~50 lines in SKILL.md (643 → 592 lines)
 
 ## [1.9.3] - 2026-03-26
 
